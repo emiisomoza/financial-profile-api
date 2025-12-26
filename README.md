@@ -173,7 +173,7 @@ Used to send financial summary emails.
 ## Running the Project
 
 ### Requirements
-- Java 17 or above  
+- Java 21 or above  
 - Maven  
 - PostgreSQL  
 
