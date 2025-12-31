@@ -1,5 +1,6 @@
 package com.finantialhub.finantialhubapi.application.usecases;
 
+import com.finantialhub.finantialhubapi.domain.exceptions.EmailAlreadyExistsException;
 import com.finantialhub.finantialhubapi.domain.model.User;
 import com.finantialhub.finantialhubapi.infrastructure.persistence.UserRepository;
 import org.springframework.stereotype.Service;
@@ -19,7 +20,10 @@ public class UserService {
 
     @Transactional
     public User registerUser(String email, String fullName, String rawPassword) {
-        // TODO: check if email already exists, hash password, etc.
+        if (userRepository.existsByEmail(email)) {
+            throw new EmailAlreadyExistsException("Email already exists");
+        }
+
         User user = User.createNew(email, fullName, rawPassword);
         return userRepository.save(user);
     }

@@ -1,4 +1,4 @@
-package com.finantialhub.finantialhubapi.infrastructure.web;
+package com.finantialhub.finantialhubapi.web;
 
 import com.finantialhub.finantialhubapi.domain.exceptions.EmailAlreadyExistsException;
 import org.springframework.http.HttpStatus;

@@ -1,6 +1,7 @@
 package com.finantialhub.finantialhubapi.web;
 
 import com.finantialhub.finantialhubapi.application.usecases.UserService;
+import com.finantialhub.finantialhubapi.domain.exceptions.EmailAlreadyExistsException;
 import com.finantialhub.finantialhubapi.domain.model.User;
 import com.finantialhub.finantialhubapi.infrastructure.web.UserController;
 import org.junit.jupiter.api.Test;
@@ -57,6 +58,21 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.id").value(user.getId().toString()))
                 .andExpect(jsonPath("$.email").value("alice@example.com"))
                 .andExpect(jsonPath("$.fullName").value("Alice Doe"));
+    }
+
+    @Test
+    void createUser_whenEmailAlreadyExists_returns409() throws Exception {
+        var payload = new CreateUserRequest("alice@example.com", "Alice Doe", "secret123");
+
+        // Arrange: service should throw our custom exception
+        Mockito.when(userService.registerUser(anyString(), anyString(), anyString()))
+                .thenThrow(new EmailAlreadyExistsException("Email already exists"));
+
+        mockMvc.perform(post("/api/v1/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("Email already exists"));
     }
 
     // test-only record to build the JSON request body
