@@ -1,0 +1,89 @@
+package com.finantialhub.finantialhubapi.domain.model;
+
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
+import org.springframework.data.domain.Persistable;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
+
+import java.time.Instant;
+import java.util.UUID;
+
+@Table("users")
+public class User implements Persistable<UUID> {
+
+    @Id
+    private UUID id;
+
+    private String email;
+
+    @Column("full_name")
+    private String fullName;
+
+    @Column("password_hash")
+    private String passwordHash;
+
+    @Column("created_at")
+    private Instant createdAt;
+
+    @Transient
+    private boolean isNew;
+
+    // Constructor for new users (created in the application)
+    private User(String email, String fullName, String passwordHash) {
+        this.id = UUID.randomUUID();
+        this.email = email;
+        this.fullName = fullName;
+        this.passwordHash = passwordHash;
+        this.createdAt = Instant.now();
+        this.isNew = true;   // Tells Spring Data JDBC to INSERT
+    }
+
+    // Static factory method used in your service
+    public static User createNew(String email, String fullName, String passwordHash) {
+        return new User(email, fullName, passwordHash);
+    }
+
+    // Constructor used by Spring Data JDBC when loading from DB
+    public User(UUID id,
+                String email,
+                String fullName,
+                String passwordHash,
+                Instant createdAt) {
+        this.id = id;
+        this.email = email;
+        this.fullName = fullName;
+        this.passwordHash = passwordHash;
+        this.createdAt = createdAt;
+        this.isNew = false;  // Loaded from DB → UPDATE, not INSERT
+    }
+
+    // Persistable implementation ↓↓↓
+    @Override
+    public UUID getId() {
+        return id;
+    }
+
+    @Override
+    public boolean isNew() {
+        return isNew;
+    }
+
+    // Getters
+
+    public String getEmail() {
+        return email;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+}
