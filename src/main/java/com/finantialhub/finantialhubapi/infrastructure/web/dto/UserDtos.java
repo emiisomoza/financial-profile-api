@@ -2,15 +2,25 @@ package com.finantialhub.finantialhubapi.infrastructure.web.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 import java.util.UUID;
 
 public class UserDtos {
 
     public record CreateUserRequest(
-            @Email @NotBlank String email,
-            @NotBlank String fullName,
-            @NotBlank String password
+
+            @NotBlank(message = "Email is required")
+            @Email(message = "Invalid email format")
+            String email,
+
+            @NotBlank(message = "Full name is required")
+            @Size(min = 3, max = 100, message = "Full name must be between 3 and 100 characters")
+            String fullName,
+
+            @NotBlank(message = "Password is required")
+            @Size(min = 8, max = 128, message = "Password must be at least 8 characters long")
+            String password
     ) {}
 
     public record UserResponse(
