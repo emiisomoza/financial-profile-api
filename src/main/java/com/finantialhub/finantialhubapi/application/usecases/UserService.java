@@ -1,6 +1,6 @@
 package com.finantialhub.finantialhubapi.application.usecases;
 
-import com.finantialhub.finantialhubapi.domain.exceptions.EmailAlreadyExistsException;
+import com.finantialhub.finantialhubapi.domain.exceptions.UserNotFoundException;
 import com.finantialhub.finantialhubapi.domain.model.User;
 import com.finantialhub.finantialhubapi.domain.validation.UserRegistrationValidator;
 import com.finantialhub.finantialhubapi.infrastructure.persistence.UserRepository;
@@ -10,6 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 @Service
 public class UserService {
@@ -38,8 +40,13 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    public List<User> getAllUsers() {
+        return StreamSupport.stream(userRepository.findAll().spliterator(), false)
+                .collect(Collectors.toList());
+    }
+
     public User getUser(UUID id) {
         return userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found: " + id));
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
     }
 }

@@ -7,7 +7,6 @@ import com.finantialhub.finantialhubapi.domain.exceptions.WeakPasswordException;
 import com.finantialhub.finantialhubapi.domain.model.User;
 import com.finantialhub.finantialhubapi.infrastructure.web.UserController;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
@@ -16,10 +15,13 @@ import tools.jackson.databind.ObjectMapper;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(controllers = UserController.class)
@@ -48,7 +50,7 @@ class UserControllerTest {
                 Instant.now()
         );
 
-        Mockito.when(userService.registerUser(anyString(), anyString(), anyString()))
+        when(userService.registerUser(anyString(), anyString(), anyString()))
                 .thenReturn(user);
 
         // Act + Assert
@@ -67,7 +69,7 @@ class UserControllerTest {
         var payload = new CreateUserRequest("alice@example.com", "Alice Doe", "secret123");
 
         // Arrange: service should throw our custom exception
-        Mockito.when(userService.registerUser(anyString(), anyString(), anyString()))
+        when(userService.registerUser(anyString(), anyString(), anyString()))
                 .thenThrow(new EmailAlreadyExistsException("Email already exists"));
 
         mockMvc.perform(post("/api/v1/users")
@@ -83,7 +85,7 @@ class UserControllerTest {
         var payload = new CreateUserRequest("alice@example.com", "Alice3", "secret123");
 
         // Arrange: service should throw our custom exception
-        Mockito.when(userService.registerUser(anyString(), anyString(), anyString()))
+        when(userService.registerUser(anyString(), anyString(), anyString()))
                 .thenThrow(new InvalidFullNameException("Full name cannot contain numbers"));
 
         mockMvc.perform(post("/api/v1/users")
@@ -99,7 +101,7 @@ class UserControllerTest {
         var payload = new CreateUserRequest("alice@example.com", "Alice", "secret123");
 
         // Arrange: service should throw our custom exception
-        Mockito.when(userService.registerUser(anyString(), anyString(), anyString()))
+        when(userService.registerUser(anyString(), anyString(), anyString()))
                 .thenThrow(new WeakPasswordException("Password must be at least 8 characters long and include " +
                         "at least 2 digits, 1 uppercase letter and 1 special character"));
 
@@ -131,6 +133,34 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.fieldErrors.email").exists())
                 .andExpect(jsonPath("$.fieldErrors.fullName").exists())
                 .andExpect(jsonPath("$.fieldErrors.password").exists());
+    }
+
+    @Test
+    void getAllUsers_shouldReturnList() throws Exception {
+        UUID id = UUID.randomUUID();
+        User user = new User(id, "test@example.com", "John Doe", "hash", Instant.now());
+
+        when(userService.getAllUsers()).thenReturn(List.of(user));
+
+        mockMvc.perform(get("/api/v1/users"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(id.toString()))
+                .andExpect(jsonPath("$[0].email").value("test@example.com"))
+                .andExpect(jsonPath("$[0].fullName").value("John Doe"));
+    }
+
+    @Test
+    void getUserById_shouldReturnUser() throws Exception {
+        UUID id = UUID.randomUUID();
+        User user = new User(id, "test@example.com", "John Doe", "hash", Instant.now());
+
+        when(userService.getUser(id)).thenReturn(user);
+
+        mockMvc.perform(get("/api/v1/users/" + id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id.toString()))
+                .andExpect(jsonPath("$.email").value("test@example.com"))
+                .andExpect(jsonPath("$.fullName").value("John Doe"));
     }
 
     // test-only record to build the JSON request body
