@@ -4,6 +4,7 @@ import com.finantialhub.finantialhubapi.domain.exceptions.EmailAlreadyExistsExce
 import com.finantialhub.finantialhubapi.domain.model.User;
 import com.finantialhub.finantialhubapi.domain.validation.UserRegistrationValidator;
 import com.finantialhub.finantialhubapi.infrastructure.persistence.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,21 +16,25 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final List<UserRegistrationValidator> validators;
-    // later: inject PasswordEncoder, etc.
+    private final PasswordEncoder passwordEncoder;
 
     public UserService(
         UserRepository userRepository,
-        List<UserRegistrationValidator> validators
+        List<UserRegistrationValidator> validators,
+        PasswordEncoder passwordEncoder
     ) {
         this.userRepository = userRepository;
         this.validators = validators;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional
     public User registerUser(String email, String fullName, String rawPassword) {
         validators.forEach(v -> v.validate(email, fullName, rawPassword));
 
-        User user = User.createNew(email, fullName, rawPassword);
+        String passwordHash = passwordEncoder.encode(rawPassword);
+
+        User user = User.createNew(email, fullName, passwordHash);
         return userRepository.save(user);
     }
 
