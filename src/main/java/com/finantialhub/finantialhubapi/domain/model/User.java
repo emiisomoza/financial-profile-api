@@ -2,6 +2,7 @@ package com.finantialhub.finantialhubapi.domain.model;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Transient;
+import org.springframework.data.annotation.PersistenceCreator;
 import org.springframework.data.domain.Persistable;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
@@ -29,7 +30,12 @@ public class User implements Persistable<UUID> {
     @Transient
     private boolean isNew;
 
-    // Constructor for new users (created in the application)
+    // === 1) No-arg constructor for Spring Data JDBC ===
+    protected User() {
+        // for framework use only
+    }
+
+    // === 2) Constructor used when creating new users
     private User(String email, String fullName, String passwordHash) {
         this.id = UUID.randomUUID();
         this.email = email;
@@ -44,7 +50,8 @@ public class User implements Persistable<UUID> {
         return new User(email, fullName, passwordHash);
     }
 
-    // Constructor used by Spring Data JDBC when loading from DB
+    // === 3) Constructor used by Spring Data JDBC when loading from DB ===
+    @PersistenceCreator
     public User(UUID id,
                 String email,
                 String fullName,
@@ -66,7 +73,7 @@ public class User implements Persistable<UUID> {
 
     @Override
     public boolean isNew() {
-        return isNew;
+        return isNew || id == null;
     }
 
     // Getters

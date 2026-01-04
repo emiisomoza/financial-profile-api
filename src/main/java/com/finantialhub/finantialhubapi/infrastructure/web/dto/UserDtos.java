@@ -1,5 +1,6 @@
 package com.finantialhub.finantialhubapi.infrastructure.web.dto;
 
+import com.finantialhub.finantialhubapi.domain.model.User;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -27,5 +28,13 @@ public class UserDtos {
             UUID id,
             String email,
             String fullName
-    ) {}
+    ) {
+        public static UserResponse from(User user) {
+            return new UserResponse(
+                    user.getId(),
+                    user.getEmail(),
+                    user.getFullName()
+            );
+        }
+    }
 }
