@@ -1,8 +1,6 @@
 package com.finantialhub.finantialhubapi.web;
 
-import com.finantialhub.finantialhubapi.domain.exceptions.EmailAlreadyExistsException;
-import com.finantialhub.finantialhubapi.domain.exceptions.InvalidFullNameException;
-import com.finantialhub.finantialhubapi.domain.exceptions.WeakPasswordException;
+import com.finantialhub.finantialhubapi.domain.exceptions.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -55,6 +53,18 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleInvalidFullName(InvalidFullNameException ex) {
         return error("INVALID_FULL_NAME", ex.getMessage());
+    }
+
+    @ExceptionHandler(UserNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorResponse handleUserNotFound(UserNotFoundException ex) {
+        return error("USER_NOT_FOUND", ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public ErrorResponse handleInvalidCredentials(InvalidCredentialsException ex) {
+        return error("INVALID_CREDENTIALS", ex.getMessage());
     }
 
     // fallback
