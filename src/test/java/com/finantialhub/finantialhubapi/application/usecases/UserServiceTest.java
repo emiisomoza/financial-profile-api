@@ -1,5 +1,7 @@
 package com.finantialhub.finantialhubapi.application.usecases;
 
+import com.finantialhub.finantialhubapi.domain.exceptions.EmailAlreadyExistsException;
+import com.finantialhub.finantialhubapi.domain.exceptions.UserNotFoundException;
 import com.finantialhub.finantialhubapi.domain.model.User;
 import com.finantialhub.finantialhubapi.domain.validation.UserRegistrationValidator;
 import com.finantialhub.finantialhubapi.infrastructure.persistence.UserRepository;
@@ -10,9 +12,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -65,5 +71,68 @@ class UserServiceTest {
 
         // also verify service returns same user as saved
         assertThat(result.getPasswordHash()).isEqualTo(hashedPassword);
+    }
+
+    @Test
+    void updateUser_shouldUpdateEmailAndFullName() {
+        UUID id = UUID.randomUUID();
+
+        User existingUser = new User(
+                id,
+                "old@example.com",
+                "Old Name",
+                "hash",
+                Instant.now()
+        );
+
+        when(userRepository.findById(id)).thenReturn(Optional.of(existingUser));
+        when(userRepository.existsByEmail("new@example.com")).thenReturn(false);
+
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        when(userRepository.save(userCaptor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UserService service = new UserService(userRepository, List.of(validator1), passwordEncoder);
+
+        User result = service.updateUser(id, "new@example.com", "New Name");
+
+        User saved = userCaptor.getValue();
+        assertThat(saved.getEmail()).isEqualTo("new@example.com");
+        assertThat(saved.getFullName()).isEqualTo("New Name");
+        assertThat(saved.getPasswordHash()).isEqualTo("hash");
+
+        assertThat(result.getEmail()).isEqualTo("new@example.com");
+    }
+
+    @Test
+    void updateUser_shouldThrowWhenUserNotFound() {
+        UUID id = UUID.randomUUID();
+
+        when(userRepository.findById(id)).thenReturn(Optional.empty());
+
+        UserService service = new UserService(userRepository, List.of(validator1), passwordEncoder);
+
+        assertThrows(UserNotFoundException.class,
+                () -> service.updateUser(id, "new@example.com", "New Name"));
+    }
+
+    @Test
+    void updateUser_shouldThrowWhenEmailAlreadyExistsForAnotherUser() {
+        UUID id = UUID.randomUUID();
+
+        User existing = new User(
+                id,
+                "old@example.com",
+                "Old Name",
+                "hash",
+                Instant.now()
+        );
+
+        when(userRepository.findById(id)).thenReturn(Optional.of(existing));
+        when(userRepository.existsByEmail("taken@example.com")).thenReturn(true);
+
+        UserService service = new UserService(userRepository, List.of(validator1), passwordEncoder);
+
+        assertThrows(EmailAlreadyExistsException.class,
+                () -> service.updateUser(id, "taken@example.com", "New Name"));
     }
 }

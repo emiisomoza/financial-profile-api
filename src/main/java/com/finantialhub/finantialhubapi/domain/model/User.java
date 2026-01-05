@@ -93,4 +93,14 @@ public class User implements Persistable<UUID> {
     public Instant getCreatedAt() {
         return createdAt;
     }
+
+    public User withUpdatedProfile(String email, String fullName) {
+        return new User(
+                this.id,
+                email,
+                fullName,
+                this.passwordHash,
+                this.createdAt
+        );
+    }
 }
