@@ -6,6 +6,7 @@ import com.finantialhub.finantialhubapi.domain.exceptions.InvalidFullNameExcepti
 import com.finantialhub.finantialhubapi.domain.exceptions.WeakPasswordException;
 import com.finantialhub.finantialhubapi.domain.model.User;
 import com.finantialhub.finantialhubapi.infrastructure.web.UserController;
+import com.finantialhub.finantialhubapi.infrastructure.web.dto.UserDtos.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -19,7 +20,9 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -161,6 +164,32 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.id").value(id.toString()))
                 .andExpect(jsonPath("$.email").value("test@example.com"))
                 .andExpect(jsonPath("$.fullName").value("John Doe"));
+    }
+
+    @Test
+    void updateUser_shouldReturnUpdatedUser() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        User user = new User(
+                id,
+                "new@example.com",
+                "New Name",
+                "hash",
+                Instant.now()
+        );
+
+        when(userService.updateUser(eq(id), eq("new@example.com"), eq("New Name")))
+                .thenReturn(user);
+
+        UpdateUserRequest request = new UpdateUserRequest("new@example.com", "New Name");
+
+        mockMvc.perform(put("/api/v1/users/" + id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id.toString()))
+                .andExpect(jsonPath("$.email").value("new@example.com"))
+                .andExpect(jsonPath("$.fullName").value("New Name"));
     }
 
     // test-only record to build the JSON request body

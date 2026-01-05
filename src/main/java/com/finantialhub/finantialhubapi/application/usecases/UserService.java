@@ -1,5 +1,6 @@
 package com.finantialhub.finantialhubapi.application.usecases;
 
+import com.finantialhub.finantialhubapi.domain.exceptions.EmailAlreadyExistsException;
 import com.finantialhub.finantialhubapi.domain.exceptions.UserNotFoundException;
 import com.finantialhub.finantialhubapi.domain.model.User;
 import com.finantialhub.finantialhubapi.domain.validation.UserRegistrationValidator;
@@ -48,5 +49,18 @@ public class UserService {
     public User getUser(UUID id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
+    }
+
+    @Transactional
+    public User updateUser(UUID id, String email, String fullName) {
+        User existing = getUser(id);
+
+        // If email changed, check uniqueness
+        if (!existing.getEmail().equals(email) && userRepository.existsByEmail(email)) {
+            throw new EmailAlreadyExistsException("Email already exists");
+        }
+
+        User updated = existing.withUpdatedProfile(email, fullName);
+        return userRepository.save(updated);
     }
 }

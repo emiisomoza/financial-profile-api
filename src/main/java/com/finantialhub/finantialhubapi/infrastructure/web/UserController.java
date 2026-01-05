@@ -2,6 +2,7 @@ package com.finantialhub.finantialhubapi.infrastructure.web;
 
 import com.finantialhub.finantialhubapi.application.usecases.UserService;
 import com.finantialhub.finantialhubapi.domain.model.User;
+import com.finantialhub.finantialhubapi.infrastructure.web.dto.UserDtos.UpdateUserRequest;
 import com.finantialhub.finantialhubapi.infrastructure.web.dto.UserDtos.CreateUserRequest;
 import com.finantialhub.finantialhubapi.infrastructure.web.dto.UserDtos.UserResponse;
 import jakarta.validation.Valid;
@@ -43,5 +44,12 @@ public class UserController {
     public UserResponse getUser(@PathVariable UUID id) {
         User user = userService.getUser(id);
         return new UserResponse(user.getId(), user.getEmail(), user.getFullName());
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<UserResponse> updateUser(@PathVariable UUID id,
+                                                   @Valid @RequestBody UpdateUserRequest request) {
+        User updated = userService.updateUser(id, request.email(), request.fullName());
+        return ResponseEntity.ok(UserResponse.from(updated));
     }
 }
