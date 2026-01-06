@@ -28,7 +28,7 @@ public class AuthService {
             throw new InvalidCredentialsException("Invalid email or password");
         }
 
-        // here you could generate a JWT or session token instead
+        // here we could generate a JWT or session token instead
         return user;
     }
 }
