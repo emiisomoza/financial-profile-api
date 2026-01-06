@@ -2,6 +2,7 @@ package com.finantialhub.finantialhubapi.application.usecases;
 
 import com.finantialhub.finantialhubapi.domain.exceptions.EmailAlreadyExistsException;
 import com.finantialhub.finantialhubapi.domain.exceptions.UserNotFoundException;
+import com.finantialhub.finantialhubapi.domain.model.Role;
 import com.finantialhub.finantialhubapi.domain.model.User;
 import com.finantialhub.finantialhubapi.domain.validation.UserRegistrationValidator;
 import com.finantialhub.finantialhubapi.infrastructure.persistence.UserRepository;
@@ -82,7 +83,8 @@ class UserServiceTest {
                 "old@example.com",
                 "Old Name",
                 "hash",
-                Instant.now()
+                Instant.now(),
+                Role.MEMBER
         );
 
         when(userRepository.findById(id)).thenReturn(Optional.of(existingUser));
@@ -124,7 +126,8 @@ class UserServiceTest {
                 "old@example.com",
                 "Old Name",
                 "hash",
-                Instant.now()
+                Instant.now(),
+                Role.MEMBER
         );
 
         when(userRepository.findById(id)).thenReturn(Optional.of(existing));

@@ -4,6 +4,7 @@ import com.finantialhub.finantialhubapi.application.usecases.UserService;
 import com.finantialhub.finantialhubapi.domain.exceptions.EmailAlreadyExistsException;
 import com.finantialhub.finantialhubapi.domain.exceptions.InvalidFullNameException;
 import com.finantialhub.finantialhubapi.domain.exceptions.WeakPasswordException;
+import com.finantialhub.finantialhubapi.domain.model.Role;
 import com.finantialhub.finantialhubapi.domain.model.User;
 import com.finantialhub.finantialhubapi.infrastructure.web.UserController;
 import com.finantialhub.finantialhubapi.infrastructure.web.dto.UserDtos.*;
@@ -49,8 +50,9 @@ class UserControllerTest {
                 UUID.randomUUID(),
                 "alice@example.com",
                 "Alice Doe",
-                "hashed-secret",          // or raw for now
-                Instant.now()
+                "hashed-secret",
+                Instant.now(),
+                Role.MEMBER
         );
 
         when(userService.registerUser(anyString(), anyString(), anyString()))
@@ -64,7 +66,8 @@ class UserControllerTest {
                 .andExpect(header().exists("Location"))
                 .andExpect(jsonPath("$.id").value(user.getId().toString()))
                 .andExpect(jsonPath("$.email").value("alice@example.com"))
-                .andExpect(jsonPath("$.fullName").value("Alice Doe"));
+                .andExpect(jsonPath("$.fullName").value("Alice Doe"))
+                .andExpect(jsonPath("$.role").value("MEMBER"));
     }
 
     @Test
@@ -141,7 +144,7 @@ class UserControllerTest {
     @Test
     void getAllUsers_shouldReturnList() throws Exception {
         UUID id = UUID.randomUUID();
-        User user = new User(id, "test@example.com", "John Doe", "hash", Instant.now());
+        User user = new User(id, "test@example.com", "John Doe", "hash", Instant.now(),  Role.MEMBER);
 
         when(userService.getAllUsers()).thenReturn(List.of(user));
 
@@ -155,7 +158,7 @@ class UserControllerTest {
     @Test
     void getUserById_shouldReturnUser() throws Exception {
         UUID id = UUID.randomUUID();
-        User user = new User(id, "test@example.com", "John Doe", "hash", Instant.now());
+        User user = new User(id, "test@example.com", "John Doe", "hash", Instant.now(), Role.MEMBER);
 
         when(userService.getUser(id)).thenReturn(user);
 
@@ -163,7 +166,8 @@ class UserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id.toString()))
                 .andExpect(jsonPath("$.email").value("test@example.com"))
-                .andExpect(jsonPath("$.fullName").value("John Doe"));
+                .andExpect(jsonPath("$.fullName").value("John Doe"))
+                .andExpect(jsonPath("$.role").value("MEMBER"));
     }
 
     @Test
@@ -175,7 +179,8 @@ class UserControllerTest {
                 "new@example.com",
                 "New Name",
                 "hash",
-                Instant.now()
+                Instant.now(),
+                Role.MEMBER
         );
 
         when(userService.updateUser(eq(id), eq("new@example.com"), eq("New Name")))
@@ -189,7 +194,8 @@ class UserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id.toString()))
                 .andExpect(jsonPath("$.email").value("new@example.com"))
-                .andExpect(jsonPath("$.fullName").value("New Name"));
+                .andExpect(jsonPath("$.fullName").value("New Name"))
+                .andExpect(jsonPath("$.role").value("MEMBER"));
     }
 
     // test-only record to build the JSON request body
