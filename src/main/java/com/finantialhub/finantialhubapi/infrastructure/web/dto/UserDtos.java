@@ -26,6 +26,26 @@ public class UserDtos {
             String password
     ) {}
 
+    public record UpdateUserRequest(
+
+            @NotBlank(message = "Email is required")
+            @Email(message = "Invalid email format")
+            String email,
+
+            @NotBlank(message = "Full name is required")
+            @Size(min = 3, max = 100, message = "Full name must be between 3 and 100 characters")
+            String fullName
+    ) {}
+
+    public record LoginRequest(
+            @NotBlank(message = "Email is required")
+            @Email(message = "Invalid email format")
+            String email,
+
+            @NotBlank(message = "Password is required")
+            String password
+    ) {}
+
     public record UserResponse(
             UUID id,
             String email,
@@ -44,14 +64,20 @@ public class UserDtos {
         }
     }
 
-    public record UpdateUserRequest(
-
-            @NotBlank(message = "Email is required")
-            @Email(message = "Invalid email format")
+    public record LoginResponse(
+            UUID id,
             String email,
-
-            @NotBlank(message = "Full name is required")
-            @Size(min = 3, max = 100, message = "Full name must be between 3 and 100 characters")
-            String fullName
-    ) {}
+            String fullName,
+            Role role
+            // Later we can add: String token
+    ) {
+        public static LoginResponse from(User user) {
+            return new LoginResponse(
+                    user.getId(),
+                    user.getEmail(),
+                    user.getFullName(),
+                    user.getRole()
+            );
+        }
+    }
 }
