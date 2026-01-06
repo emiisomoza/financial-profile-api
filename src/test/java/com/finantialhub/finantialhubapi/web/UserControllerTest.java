@@ -66,7 +66,8 @@ class UserControllerTest {
                 .andExpect(header().exists("Location"))
                 .andExpect(jsonPath("$.id").value(user.getId().toString()))
                 .andExpect(jsonPath("$.email").value("alice@example.com"))
-                .andExpect(jsonPath("$.fullName").value("Alice Doe"));
+                .andExpect(jsonPath("$.fullName").value("Alice Doe"))
+                .andExpect(jsonPath("$.role").value("MEMBER"));
     }
 
     @Test
@@ -165,7 +166,8 @@ class UserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id.toString()))
                 .andExpect(jsonPath("$.email").value("test@example.com"))
-                .andExpect(jsonPath("$.fullName").value("John Doe"));
+                .andExpect(jsonPath("$.fullName").value("John Doe"))
+                .andExpect(jsonPath("$.role").value("MEMBER"));
     }
 
     @Test
@@ -192,7 +194,8 @@ class UserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id.toString()))
                 .andExpect(jsonPath("$.email").value("new@example.com"))
-                .andExpect(jsonPath("$.fullName").value("New Name"));
+                .andExpect(jsonPath("$.fullName").value("New Name"))
+                .andExpect(jsonPath("$.role").value("MEMBER"));
     }
 
     // test-only record to build the JSON request body
