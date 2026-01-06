@@ -114,4 +114,18 @@ public class User implements Persistable<UUID> {
                 this.role
         );
     }
+
+    public User promoteToAdmin() {
+        if (this.role == Role.ADMIN) {
+            return this; // already admin, no change
+        }
+        return new User(
+                this.id,
+                this.email,
+                this.fullName,
+                this.passwordHash,
+                this.createdAt,
+                Role.ADMIN
+        );
+    }
 }

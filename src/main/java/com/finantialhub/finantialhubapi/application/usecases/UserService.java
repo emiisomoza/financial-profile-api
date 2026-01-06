@@ -63,4 +63,12 @@ public class UserService {
         User updated = existing.withUpdatedProfile(email, fullName);
         return userRepository.save(updated);
     }
+
+    @Transactional
+    public User promoteUserToAdmin(UUID userId) {
+        User user = getUser(userId); // already throws UserNotFoundException if missing
+
+        User promoted = user.promoteToAdmin();
+        return userRepository.save(promoted);
+    }
 }

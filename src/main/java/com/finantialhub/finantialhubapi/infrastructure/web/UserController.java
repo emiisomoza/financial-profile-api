@@ -52,4 +52,11 @@ public class UserController {
         User updated = userService.updateUser(id, request.email(), request.fullName());
         return ResponseEntity.ok(UserResponse.from(updated));
     }
+
+    //Will add security later to restrict this endpoint (and others) only to admins
+    @PostMapping("/{id}/promote")
+    public ResponseEntity<UserResponse> promoteUserToAdmin(@PathVariable UUID id) {
+        User promoted = userService.promoteUserToAdmin(id);
+        return ResponseEntity.ok(UserResponse.from(promoted));
+    }
 }
