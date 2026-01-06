@@ -27,6 +27,9 @@ public class User implements Persistable<UUID> {
     @Column("created_at")
     private Instant createdAt;
 
+    @Column("role")
+    private Role role;
+
     @Transient
     private boolean isNew;
 
@@ -36,18 +39,19 @@ public class User implements Persistable<UUID> {
     }
 
     // === 2) Constructor used when creating new users
-    private User(String email, String fullName, String passwordHash) {
+    private User(String email, String fullName, String passwordHash, Role role) {
         this.id = UUID.randomUUID();
         this.email = email;
         this.fullName = fullName;
         this.passwordHash = passwordHash;
         this.createdAt = Instant.now();
+        this.role = role;
         this.isNew = true;   // Tells Spring Data JDBC to INSERT
     }
 
     // Static factory method used in your service
     public static User createNew(String email, String fullName, String passwordHash) {
-        return new User(email, fullName, passwordHash);
+        return new User(email, fullName, passwordHash, Role.MEMBER);
     }
 
     // === 3) Constructor used by Spring Data JDBC when loading from DB ===
@@ -56,12 +60,14 @@ public class User implements Persistable<UUID> {
                 String email,
                 String fullName,
                 String passwordHash,
-                Instant createdAt) {
+                Instant createdAt,
+                Role role) {
         this.id = id;
         this.email = email;
         this.fullName = fullName;
         this.passwordHash = passwordHash;
         this.createdAt = createdAt;
+        this.role = role;
         this.isNew = false;  // Loaded from DB → UPDATE, not INSERT
     }
 
@@ -94,13 +100,18 @@ public class User implements Persistable<UUID> {
         return createdAt;
     }
 
+    public Role getRole() {
+        return role;
+    }
+
     public User withUpdatedProfile(String email, String fullName) {
         return new User(
                 this.id,
                 email,
                 fullName,
                 this.passwordHash,
-                this.createdAt
+                this.createdAt,
+                this.role
         );
     }
 }

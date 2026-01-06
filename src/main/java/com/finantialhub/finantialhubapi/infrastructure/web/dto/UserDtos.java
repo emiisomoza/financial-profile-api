@@ -1,10 +1,12 @@
 package com.finantialhub.finantialhubapi.infrastructure.web.dto;
 
+import com.finantialhub.finantialhubapi.domain.model.Role;
 import com.finantialhub.finantialhubapi.domain.model.User;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+import java.time.Instant;
 import java.util.UUID;
 
 public class UserDtos {
@@ -27,13 +29,17 @@ public class UserDtos {
     public record UserResponse(
             UUID id,
             String email,
-            String fullName
+            String fullName,
+            Role role,
+            Instant createdAt
     ) {
         public static UserResponse from(User user) {
             return new UserResponse(
                     user.getId(),
                     user.getEmail(),
-                    user.getFullName()
+                    user.getFullName(),
+                    user.getRole(),
+                    user.getCreatedAt()
             );
         }
     }

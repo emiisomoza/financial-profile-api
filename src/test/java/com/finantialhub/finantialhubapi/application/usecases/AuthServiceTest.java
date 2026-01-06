@@ -2,6 +2,7 @@ package com.finantialhub.finantialhubapi.application.usecases;
 
 import com.finantialhub.finantialhubapi.domain.exceptions.InvalidCredentialsException;
 import com.finantialhub.finantialhubapi.domain.exceptions.UserNotFoundException;
+import com.finantialhub.finantialhubapi.domain.model.Role;
 import com.finantialhub.finantialhubapi.domain.model.User;
 import com.finantialhub.finantialhubapi.infrastructure.persistence.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -38,7 +39,8 @@ class AuthServiceTest {
                 email,
                 "John Doe",
                 hashFromDb,
-                Instant.now()
+                Instant.now(),
+                Role.MEMBER
         );
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
@@ -62,7 +64,8 @@ class AuthServiceTest {
                 email,
                 "John Doe",
                 hashFromDb,
-                Instant.now()
+                Instant.now(),
+                Role.MEMBER
         );
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));

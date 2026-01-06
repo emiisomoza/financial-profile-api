@@ -26,7 +26,7 @@ public class UserController {
     @PostMapping
     public ResponseEntity<UserResponse> createUser(@Valid @RequestBody CreateUserRequest request) {
         User user = userService.registerUser(request.email(), request.fullName(), request.password());
-        UserResponse body = new UserResponse(user.getId(), user.getEmail(), user.getFullName());
+        UserResponse body = new UserResponse(user.getId(), user.getEmail(), user.getFullName(), user.getRole(), user.getCreatedAt());
         URI location = URI.create("/api/v1/users/" + user.getId());
         return ResponseEntity.created(location).body(body);
     }
@@ -43,7 +43,7 @@ public class UserController {
     @GetMapping("/{id}")
     public UserResponse getUser(@PathVariable UUID id) {
         User user = userService.getUser(id);
-        return new UserResponse(user.getId(), user.getEmail(), user.getFullName());
+        return new UserResponse(user.getId(), user.getEmail(), user.getFullName(), user.getRole(), user.getCreatedAt());
     }
 
     @PutMapping("/{id}")
