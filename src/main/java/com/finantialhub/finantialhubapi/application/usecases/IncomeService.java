@@ -1,0 +1,48 @@
+package com.finantialhub.finantialhubapi.application.usecases;
+
+import com.finantialhub.finantialhubapi.domain.model.Income;
+import com.finantialhub.finantialhubapi.domain.model.IncomeFrequency;
+import com.finantialhub.finantialhubapi.infrastructure.persistence.IncomeRepository;
+import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
+
+@Service
+public class IncomeService {
+
+    private final IncomeRepository incomeRepository;
+
+    public IncomeService(IncomeRepository incomeRepository) {
+        this.incomeRepository = incomeRepository;
+    }
+
+    public Income createIncome(CreateIncomeCommand cmd) {
+        Income income = Income.createNew(
+                cmd.userId(),
+                cmd.source(),
+                IncomeFrequency.valueOf(cmd.frequency()),
+                cmd.amount(),
+                cmd.currency(),
+                cmd.startsAt(),
+                cmd.endsAt()
+        );
+        return incomeRepository.save(income);
+    }
+
+    public List<Income> getIncomesForUser(UUID userId) {
+        return incomeRepository.findByUserId(userId);
+    }
+
+    public record CreateIncomeCommand(
+            UUID userId,
+            String source,
+            String frequency,
+            BigDecimal amount,
+            String currency,
+            LocalDate startsAt,
+            LocalDate endsAt
+    ) {}
+}
