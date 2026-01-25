@@ -37,3 +37,19 @@ CREATE TABLE IF NOT EXISTS incomes (
     CONSTRAINT fk_incomes_user
        FOREIGN KEY (user_id) REFERENCES users(id)
 );
+
+CREATE TABLE IF NOT EXISTS expenses (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL,
+    category VARCHAR(50) NOT NULL,
+    description VARCHAR(255) NOT NULL,
+    frequency VARCHAR(30) NOT NULL,
+    amount NUMERIC(18, 2) NOT NULL,
+    currency VARCHAR(3) NOT NULL,
+    starts_at DATE NOT NULL,
+    ends_at DATE,
+    created_at TIMESTAMP NOT NULL,
+
+    CONSTRAINT fk_expenses_user
+        FOREIGN KEY (user_id) REFERENCES users(id)
+);
