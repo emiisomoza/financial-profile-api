@@ -105,34 +105,12 @@ public class SummaryService {
         return expense.getEndsAt() == null || !today.isAfter(expense.getEndsAt());
     }
 
-    /**
-     * Income uses IncomeFrequency enum (recommended).
-     */
     private BigDecimal toMonthlyAmount(Income income) {
-        BigDecimal amount = income.getAmount();
-        IncomeFrequency f = income.getFrequency();
-        return switch (f) {
-            case MONTHLY -> amount;
-            case WEEKLY -> amount.multiply(BigDecimal.valueOf(52)).divide(BigDecimal.valueOf(12), 6, RoundingMode.HALF_UP);
-            case FORTNIGHTLY -> amount.multiply(BigDecimal.valueOf(26)).divide(BigDecimal.valueOf(12), 6, RoundingMode.HALF_UP);
-            case YEARLY -> amount.divide(BigDecimal.valueOf(12), 6, RoundingMode.HALF_UP);
-            case ONE_TIME -> BigDecimal.ZERO; // v1: not included in monthly recurring
-        };
+        return income.getFrequency().toMonthly(income.getAmount());
     }
 
     private BigDecimal toMonthlyAmount(Expense expense) {
-        BigDecimal amount = expense.getAmount();
-
-        // If your Expense has ExpenseFrequency frequency enum, replace this parse with expense.getFrequency()
-        ExpenseFrequency f = ExpenseFrequency.fromString(expense.getFrequency().toString());
-
-        return switch (f) {
-            case MONTHLY -> amount;
-            case WEEKLY -> amount.multiply(BigDecimal.valueOf(52)).divide(BigDecimal.valueOf(12), 6, RoundingMode.HALF_UP);
-            case FORTNIGHTLY -> amount.multiply(BigDecimal.valueOf(26)).divide(BigDecimal.valueOf(12), 6, RoundingMode.HALF_UP);
-            case YEARLY -> amount.divide(BigDecimal.valueOf(12), 6, RoundingMode.HALF_UP);
-            case ONE_TIME -> BigDecimal.ZERO; // v1: not included in monthly recurring
-        };
+        return expense.getFrequency().toMonthly(expense.getAmount());
     }
 
     private record AssetValuationResult(BigDecimal totalValue, int unpricedCount) {}
