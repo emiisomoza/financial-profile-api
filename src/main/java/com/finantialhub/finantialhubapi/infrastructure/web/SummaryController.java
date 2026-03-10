@@ -1,8 +1,9 @@
 package com.finantialhub.finantialhubapi.infrastructure.web;
 
 import com.finantialhub.finantialhubapi.application.usecases.SummaryService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import com.finantialhub.finantialhubapi.infrastructure.web.dto.SummaryDtos.*;
+import com.finantialhub.finantialhubapi.infrastructure.web.dto.SummaryDtos.SummaryResponse;
 
 import java.util.UUID;
 
@@ -16,8 +17,11 @@ public class SummaryController {
         this.summaryService = summaryService;
     }
 
-    @GetMapping
-    public SummaryResponse getSummary(@RequestParam("userId") UUID userId) {
-        return SummaryResponse.from(summaryService.getSummary(userId));
+    @GetMapping("/{userId}")
+    public ResponseEntity<SummaryResponse> getSummary(
+            @PathVariable UUID userId,
+            @RequestParam(defaultValue = "AUD") String currency) {
+        SummaryService.Summary summary = summaryService.getSummary(userId, currency);
+        return ResponseEntity.ok(SummaryResponse.from(summary));
     }
 }

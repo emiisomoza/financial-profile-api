@@ -1,27 +1,28 @@
 package com.finantialhub.finantialhubapi.infrastructure.web.dto;
 
 import com.finantialhub.finantialhubapi.application.usecases.SummaryService;
+import java.math.BigDecimal;
 
 public class SummaryDtos {
     public record SummaryResponse(
             String userId,
             String currency,
-            double totalAssetsValue,
-            double monthlyIncome,
-            double monthlyExpenses,
-            double monthlySavings,
-            double savingsRate,
+            BigDecimal totalAssetsValue,
+            BigDecimal monthlyIncome,
+            BigDecimal monthlyExpenses,
+            BigDecimal monthlySavings,
+            BigDecimal savingsRate,
             int unpricedAssetsCount
     ) {
         public static SummaryResponse from(SummaryService.Summary s) {
             return new SummaryResponse(
                     s.userId().toString(),
                     s.currency(),
-                    s.totalAssetsValue().doubleValue(),
-                    s.monthlyIncome().doubleValue(),
-                    s.monthlyExpenses().doubleValue(),
-                    s.monthlySavings().doubleValue(),
-                    s.savingsRate().doubleValue(),
+                    s.totalAssetsValue(),
+                    s.monthlyIncome(),
+                    s.monthlyExpenses(),
+                    s.monthlySavings(),
+                    s.savingsRate(),
                     s.unpricedAssetsCount()
             );
         }
