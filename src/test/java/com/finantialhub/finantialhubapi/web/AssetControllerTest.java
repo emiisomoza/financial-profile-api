@@ -1,6 +1,10 @@
 package com.finantialhub.finantialhubapi.web;
 
+import com.finantialhub.finantialhubapi.domain.exceptions.AssetNotFoundException;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import com.finantialhub.finantialhubapi.infrastructure.web.AssetController;
+import com.finantialhub.finantialhubapi.infrastructure.web.dto.AssetDtos;
 import tools.jackson.databind.ObjectMapper;
 import com.finantialhub.finantialhubapi.application.usecases.AssetService;
 import com.finantialhub.finantialhubapi.domain.model.Asset;
@@ -108,6 +112,70 @@ class AssetControllerTest {
                 .andExpect(jsonPath("$[0].type").value("CRYPTO"));
     }
 
+    @Test
+    void updateAsset_returns200AndUpdatedBody() throws Exception {
+        UUID assetId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        AssetDtos.UpdateAssetRequest request = new AssetDtos.UpdateAssetRequest(
+                "Bitcoin Updated",
+                "BTC",
+                new BigDecimal("1.0"),
+                "MARKET",
+                null,
+                "AUD"
+        );
+
+        Asset updated = new Asset(
+                assetId,
+                userId,
+                AssetType.CRYPTO,
+                "Bitcoin Updated",
+                "BTC",
+                new BigDecimal("1.0"),
+                ValuationMode.MARKET,
+                null,
+                "AUD",
+                Instant.now()
+        );
+
+        when(assetService.updateAsset(eq(assetId), any())).thenReturn(updated);
+
+        mockMvc.perform(put("/api/v1/assets/" + assetId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(assetId.toString()))
+                .andExpect(jsonPath("$.name").value("Bitcoin Updated"))
+                .andExpect(jsonPath("$.symbol").value("BTC"))
+                .andExpect(jsonPath("$.quantity").value(1.0))
+                .andExpect(jsonPath("$.valuationMode").value("MARKET"))
+                .andExpect(jsonPath("$.currency").value("AUD"));
+    }
+
+    @Test
+    void updateAsset_returns404WhenNotFound() throws Exception {
+        UUID assetId = UUID.randomUUID();
+
+        AssetDtos.UpdateAssetRequest request = new AssetDtos.UpdateAssetRequest(
+                "Bitcoin",
+                "BTC",
+                new BigDecimal("1.0"),
+                "MARKET",
+                null,
+                "AUD"
+        );
+
+        when(assetService.updateAsset(eq(assetId), any()))
+                .thenThrow(new AssetNotFoundException(assetId));
+
+        mockMvc.perform(put("/api/v1/assets/" + assetId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("ASSET_NOT_FOUND"));
+    }
+
     // simple DTO for test
     record CreateAssetRequest(
             String userId,
@@ -119,4 +187,5 @@ class AssetControllerTest {
             BigDecimal manualUnitValue,
             String currency
     ) {}
+
 }

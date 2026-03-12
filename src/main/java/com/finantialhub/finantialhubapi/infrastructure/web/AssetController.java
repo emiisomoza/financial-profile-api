@@ -48,4 +48,22 @@ public class AssetController {
                 .map(AssetResponse::from)
                 .toList();
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<AssetResponse> updateAsset(
+            @PathVariable UUID id,
+            @RequestBody UpdateAssetRequest request) {
+
+        AssetService.UpdateAssetCommand cmd = new AssetService.UpdateAssetCommand(
+                request.name(),
+                request.symbol(),
+                request.quantity(),
+                request.valuationMode(),
+                request.manualUnitValue(),
+                request.currency()
+        );
+
+        Asset updated = assetService.updateAsset(id, cmd);
+        return ResponseEntity.ok(AssetResponse.from(updated));
+    }
 }

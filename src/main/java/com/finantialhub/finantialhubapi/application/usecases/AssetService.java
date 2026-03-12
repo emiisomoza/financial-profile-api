@@ -1,5 +1,6 @@
 package com.finantialhub.finantialhubapi.application.usecases;
 
+import com.finantialhub.finantialhubapi.domain.exceptions.AssetNotFoundException;
 import com.finantialhub.finantialhubapi.domain.model.Asset;
 import com.finantialhub.finantialhubapi.domain.model.AssetType;
 import com.finantialhub.finantialhubapi.domain.model.valuation.ValuationMode;
@@ -45,6 +46,33 @@ public class AssetService {
     public record CreateAssetCommand(
             UUID userId,
             String type,
+            String name,
+            String symbol,
+            BigDecimal quantity,
+            String valuationMode,
+            BigDecimal manualUnitValue,
+            String currency
+    ) {}
+
+    public Asset updateAsset(UUID assetId, UpdateAssetCommand cmd) {
+        Asset existing = assetRepository.findById(assetId)
+                .orElseThrow(() -> new AssetNotFoundException(assetId));
+
+        ValuationMode valuationMode = ValuationMode.valueOf(cmd.valuationMode());
+
+        Asset updated = existing.update(
+                cmd.name(),
+                cmd.symbol(),
+                cmd.quantity(),
+                valuationMode,
+                cmd.manualUnitValue(),
+                cmd.currency()
+        );
+
+        return assetRepository.save(updated);
+    }
+
+    public record UpdateAssetCommand(
             String name,
             String symbol,
             BigDecimal quantity,
