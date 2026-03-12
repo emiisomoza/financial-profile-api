@@ -2,7 +2,7 @@ package com.finantialhub.finantialhubapi.application.usecases;
 
 import com.finantialhub.finantialhubapi.domain.model.Asset;
 import com.finantialhub.finantialhubapi.domain.model.AssetType;
-import com.finantialhub.finantialhubapi.domain.model.ValuationMode;
+import com.finantialhub.finantialhubapi.domain.model.valuation.ValuationMode;
 import com.finantialhub.finantialhubapi.infrastructure.persistence.AssetRepository;
 import org.springframework.stereotype.Service;
 
