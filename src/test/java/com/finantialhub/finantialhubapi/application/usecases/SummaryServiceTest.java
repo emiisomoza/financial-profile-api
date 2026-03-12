@@ -89,17 +89,16 @@ class SummaryServiceTest {
         // 750000 + 30000 + 2000 + 49000 + 2780 + 1550 = 835330
         assertBigDecimalEquals("835330.00", s.totalAssetsValue());
 
-        // Monthly income = 9000 + 4333.333333 = 13333.333333
-        assertBigDecimalEquals("13333.333333", s.monthlyIncome());
+        // Monthly income = 9000 + 4333.333333 + (999 × 1.55) = 9000 + 4333.333333 + 1548.45 = 14881.783333
+        assertBigDecimalEquals("14881.783333", s.monthlyIncome());
 
-        // Monthly expenses = 2400 + 1300 = 3700
-        assertBigDecimalEquals("3700.000000", s.monthlyExpenses());
+        // Monthly expenses = 2400 + 1300 + (50 × 1.55) = 3700 + 77.50 = 3777.500000
+        assertBigDecimalEquals("3777.500000", s.monthlyExpenses());
 
-        // Savings = 9633.333333
-        assertBigDecimalEquals("9633.333333", s.monthlySavings());
+        // Savings = 11104.283333
+        assertBigDecimalEquals("11104.283333", s.monthlySavings());
 
-        assertTrue(s.savingsRate().compareTo(new BigDecimal("0.72")) > 0);
-        assertTrue(s.savingsRate().compareTo(new BigDecimal("0.73")) < 0);
+        assertEquals(new BigDecimal("0.746166"), s.savingsRate());
 
         assertEquals(0, s.unpricedAssetsCount());
         assertEquals(AUD, s.currency());
@@ -212,23 +211,53 @@ class SummaryServiceTest {
         UUID userId = UUID.randomUUID();
         Instant now = Instant.now();
 
+        // Active: starts in past, no end
         Income activeIncome = income(userId, AUD, IncomeFrequency.MONTHLY, new BigDecimal("9000.00"),
                 LocalDate.now().minusDays(10), null, now);
+
+        // Inactive: starts in future — should be ignored
         Income futureIncome = income(userId, AUD, IncomeFrequency.MONTHLY, new BigDecimal("5000.00"),
                 LocalDate.now().plusDays(10), null, now);
+
+        // Active USD income: 1000 USD × 1.55 = 1550 AUD
+        Income activeUsdIncome = income(userId, "USD", IncomeFrequency.MONTHLY, new BigDecimal("1000.00"),
+                LocalDate.now().minusDays(5), null, now);
+
+        // Inactive USD income: starts in future — should be ignored
+        Income futureUsdIncome = income(userId, "USD", IncomeFrequency.MONTHLY, new BigDecimal("9999.00"),
+                LocalDate.now().plusDays(1), null, now);
+
+        // Inactive: ended in past — should be ignored
         Expense endedExpense = expense(userId, AUD, ExpenseFrequency.MONTHLY, new BigDecimal("100.00"),
                 LocalDate.now().minusMonths(2), LocalDate.now().minusMonths(1), now);
+
+        // Active expense
         Expense activeExpense = expense(userId, AUD, ExpenseFrequency.MONTHLY, new BigDecimal("2400.00"),
                 LocalDate.now().minusDays(1), null, now);
 
+        // Active USD expense: 200 USD × 1.55 = 310 AUD
+        Expense activeUsdExpense = expense(userId, "USD", ExpenseFrequency.MONTHLY, new BigDecimal("200.00"),
+                LocalDate.now().minusDays(1), null, now);
+
         when(assetRepository.findByUserId(userId)).thenReturn(List.of());
-        when(incomeRepository.findByUserId(userId)).thenReturn(List.of(activeIncome, futureIncome));
-        when(expenseRepository.findByUserId(userId)).thenReturn(List.of(endedExpense, activeExpense));
+        when(incomeRepository.findByUserId(userId)).thenReturn(
+                List.of(activeIncome, futureIncome, activeUsdIncome, futureUsdIncome)
+        );
+        when(expenseRepository.findByUserId(userId)).thenReturn(
+                List.of(endedExpense, activeExpense, activeUsdExpense)
+        );
+        when(marketPricePort.getPrice("fx", "USD", AUD)).thenReturn(new BigDecimal("1.55"));
 
         SummaryService.Summary s = summaryService.getSummary(userId, AUD);
 
-        assertBigDecimalEquals("9000.000000", s.monthlyIncome());
-        assertBigDecimalEquals("2400.000000", s.monthlyExpenses());
+        // 9000 + (1000 × 1.55) = 9000 + 1550 = 10550
+        assertBigDecimalEquals("10550.000000", s.monthlyIncome());
+
+        // 2400 + (200 × 1.55) = 2400 + 310 = 2710
+        assertBigDecimalEquals("2710.000000", s.monthlyExpenses());
+
+        // FX called once for USD income and once for USD expense
+        verify(marketPricePort, times(2)).getPrice("fx", "USD", AUD);
     }
 
     @Test
