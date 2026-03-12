@@ -7,5 +7,17 @@ public enum AssetType {
     STOCK,
     CRYPTO,
     FUND,
-    OTHER
+    OTHER;
+
+    public String toPriceApiAssetType() {
+        return switch (this) {
+            case STOCK -> "stock";
+            case CRYPTO -> "crypto";
+            default -> null;
+        };
+    }
+
+    public boolean hasMarketPrice() {
+        return toPriceApiAssetType() != null;
+    }
 }
