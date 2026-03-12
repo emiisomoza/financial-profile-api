@@ -67,6 +67,12 @@ public class GlobalExceptionHandler {
         return error("INVALID_CREDENTIALS", ex.getMessage());
     }
 
+    @ExceptionHandler(AssetNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorResponse handleAssetNotFound(AssetNotFoundException ex) {
+        return error("ASSET_NOT_FOUND", ex.getMessage());
+    }
+
     // fallback
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)

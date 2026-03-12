@@ -41,4 +41,13 @@ public class AssetDtos {
             );
         }
     }
+
+    public record UpdateAssetRequest(
+            String name,
+            String symbol,
+            BigDecimal quantity,
+            String valuationMode,
+            BigDecimal manualUnitValue,
+            String currency
+    ) {}
 }

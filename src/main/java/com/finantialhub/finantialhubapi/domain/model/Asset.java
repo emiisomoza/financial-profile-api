@@ -79,6 +79,26 @@ public class Asset implements Persistable<UUID> {
         return new Asset(userId, type, name, symbol, quantity, valuationMode, manualUnitValue, currency);
     }
 
+    public Asset update(String name,
+                        String symbol,
+                        BigDecimal quantity,
+                        ValuationMode valuationMode,
+                        BigDecimal manualUnitValue,
+                        String currency) {
+        return new Asset(
+                this.id,
+                this.userId,
+                this.type,       // type is immutable — can't change CRYPTO to STOCK
+                name,
+                symbol,
+                quantity,
+                valuationMode,
+                manualUnitValue,
+                currency,
+                this.createdAt
+        );
+    }
+
     // constructor used by Spring Data JDBC when loading from DB
     public Asset(UUID id,
                  UUID userId,
