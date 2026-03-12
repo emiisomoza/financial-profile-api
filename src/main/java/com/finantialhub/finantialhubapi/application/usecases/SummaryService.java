@@ -45,17 +45,14 @@ public class SummaryService {
         AssetValuationResult assetsVal = calculateAssetsValue(assets, currency);
 
         BigDecimal monthlyIncome = incomes.stream()
-                .filter(i -> currency.equalsIgnoreCase(i.getCurrency()))
                 .filter(this::isActiveNow)
-                .map(this::toMonthlyAmount)
+                .map(i -> convertToTargetCurrency(toMonthlyAmount(i), i.getCurrency(), currency))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal monthlyExpenses = expenses.stream()
-                .filter(e -> currency.equalsIgnoreCase(e.getCurrency()))
                 .filter(this::isActiveNow)
-                .map(this::toMonthlyAmount)
+                .map(e -> convertToTargetCurrency(toMonthlyAmount(e), e.getCurrency(), currency))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-
         BigDecimal monthlySavings = monthlyIncome.subtract(monthlyExpenses);
 
         BigDecimal savingsRate = BigDecimal.ZERO;
@@ -157,6 +154,14 @@ public class SummaryService {
     }
 
     private record AssetValuationResult(BigDecimal totalValue, int unpricedCount) {}
+
+    private BigDecimal convertToTargetCurrency(BigDecimal amount, String fromCurrency, String toCurrency) {
+        if (toCurrency.equalsIgnoreCase(fromCurrency)) {
+            return amount;
+        }
+        BigDecimal fxRate = marketPricePort.getPrice("fx", fromCurrency, toCurrency);
+        return amount.multiply(fxRate);
+    }
 
     public record Summary(
             UUID userId,
