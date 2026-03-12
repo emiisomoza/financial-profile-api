@@ -1,23 +1,23 @@
 package com.finantialhub.finantialhubapi.domain.model;
 
-public enum AssetType {
-    PROPERTY,
-    VEHICLE,
-    CASH,
-    STOCK,
-    CRYPTO,
-    FUND,
-    OTHER;
+import java.util.Optional;
 
-    public String toPriceApiAssetType() {
-        return switch (this) {
-            case STOCK -> "stock";
-            case CRYPTO -> "crypto";
-            default -> null;
-        };
+public enum AssetType {
+    PROPERTY(null),
+    VEHICLE(null),
+    CASH(null),
+    STOCK("stock"),
+    CRYPTO("crypto"),
+    FUND(null),
+    OTHER(null);
+
+    private final String priceApiType;
+
+    AssetType(String priceApiType) {
+        this.priceApiType = priceApiType;
     }
 
-    public boolean hasMarketPrice() {
-        return toPriceApiAssetType() != null;
+    public Optional<String> toPriceApiAssetType() {
+        return Optional.ofNullable(priceApiType);
     }
 }
