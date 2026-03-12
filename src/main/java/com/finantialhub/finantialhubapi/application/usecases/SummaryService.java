@@ -1,6 +1,7 @@
 package com.finantialhub.finantialhubapi.application.usecases;
 
 import com.finantialhub.finantialhubapi.domain.model.*;
+import com.finantialhub.finantialhubapi.domain.model.valuation.ValuationMode;
 import com.finantialhub.finantialhubapi.domain.ports.MarketPricePort;
 import com.finantialhub.finantialhubapi.infrastructure.persistence.AssetRepository;
 import com.finantialhub.finantialhubapi.infrastructure.persistence.ExpenseRepository;
@@ -101,36 +102,9 @@ public class SummaryService {
     }
 
     private Optional<BigDecimal> resolveUnitValue(Asset asset, String targetCurrency) {
-        if (asset.getValuationMode() == ValuationMode.MANUAL) {
-            BigDecimal manualValue = asset.getManualUnitValue() == null
-                    ? BigDecimal.ZERO
-                    : asset.getManualUnitValue();
-
-            if (targetCurrency.equalsIgnoreCase(asset.getCurrency())) {
-                return Optional.of(manualValue);
-            }
-
-            BigDecimal fxRate = marketPricePort.getPrice("fx", asset.getCurrency(), targetCurrency);
-            return Optional.of(manualValue.multiply(fxRate));
-        }
-
-        if (asset.getValuationMode() == ValuationMode.MARKET) {
-            String priceApiType = asset.getType().toPriceApiAssetType();
-
-            if (priceApiType == null) {
-                log.warn("Asset type {} does not support market pricing", asset.getType());
-                return Optional.empty();
-            }
-
-            if (asset.getSymbol() == null || asset.getSymbol().isBlank()) {
-                log.warn("Asset {} has MARKET valuation but no symbol", asset.getName());
-                return Optional.empty();
-            }
-
-            return Optional.of(marketPricePort.getPrice(priceApiType, asset.getSymbol(), targetCurrency));
-        }
-
-        return Optional.empty();
+        return asset.getValuationMode()
+                .strategy()
+                .resolve(asset, targetCurrency, marketPricePort);
     }
 
     private boolean isActiveNow(Income income) {

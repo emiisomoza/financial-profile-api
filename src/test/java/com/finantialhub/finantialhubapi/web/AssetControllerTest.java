@@ -5,7 +5,7 @@ import tools.jackson.databind.ObjectMapper;
 import com.finantialhub.finantialhubapi.application.usecases.AssetService;
 import com.finantialhub.finantialhubapi.domain.model.Asset;
 import com.finantialhub.finantialhubapi.domain.model.AssetType;
-import com.finantialhub.finantialhubapi.domain.model.ValuationMode;
+import com.finantialhub.finantialhubapi.domain.model.valuation.ValuationMode;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
