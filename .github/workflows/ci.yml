@@ -8,6 +8,7 @@ on:
 
 jobs:
   build:
+    name: Tests & Coverage
     runs-on: ubuntu-latest
 
     steps:
@@ -21,7 +22,13 @@ jobs:
           java-version: 21
           cache: maven
 
-      - name: Build and run tests
-        run: mvn -B test
-        # run: mvn -B verify
+      - name: Build, run tests and verify coverage
+        run: mvn -B verify
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: target/site/jacoco/
 
