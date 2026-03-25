@@ -51,7 +51,6 @@ public class SummaryPublisher implements SummaryPublisherPort {
                     .build();
 
             rabbitTemplate.send(RabbitMQConfig.EXCHANGE_NAME, RabbitMQConfig.ROUTING_KEY, message);
-            log.info("Published summary for user {} to RabbitMQ", user.getId());
 
         } catch (Exception e) {
             log.error("Failed to publish summary for user {}: {}", user.getId(), e.getMessage(), e);
