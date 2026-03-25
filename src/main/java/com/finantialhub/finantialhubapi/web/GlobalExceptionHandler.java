@@ -2,6 +2,7 @@ package com.finantialhub.finantialhubapi.web;
 
 import com.finantialhub.finantialhubapi.domain.exceptions.*;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -29,6 +30,12 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.CONFLICT)
     public ErrorResponse handleEmailAlreadyExists(EmailAlreadyExistsException ex) {
         return error("EMAIL_ALREADY_EXISTS", ex.getMessage());
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleNotReadable(HttpMessageNotReadableException ex) {
+        return error("BAD_REQUEST", "Malformed or unreadable request body");
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -71,6 +78,12 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorResponse handleAssetNotFound(AssetNotFoundException ex) {
         return error("ASSET_NOT_FOUND", ex.getMessage());
+    }
+
+    @ExceptionHandler(SubscriptionNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorResponse handleSubscriptionNotFound(SubscriptionNotFoundException ex) {
+        return error("SUBSCRIPTION_NOT_FOUND", ex.getMessage());
     }
 
     // fallback
