@@ -1,112 +1,40 @@
-# Financial Profile API (Java / Spring Boot)
+# Financial Profile API ☕
 
-The Financial Profile API is the main backend service of a personal wealth and savings management platform.  
-Users can register, add assets, incomes, and expenses, and generate a financial summary including net worth, monthly income/expenses, saving capacity, and real-time market valuations.
+![CI](https://github.com/emiisomoza/finantial-profile-api/actions/workflows/ci.yml/badge.svg)
+![Java](https://img.shields.io/badge/java-21-orange)
+![Spring Boot](https://img.shields.io/badge/spring--boot-4.0-green)
+![License](https://img.shields.io/badge/license-MIT-green)
 
-This service forms the core of a 3-service ecosystem:
+REST API built in **Java (Spring Boot)** that manages users, assets, incomes, expenses and financial summaries for a personal wealth management platform. Uses **Hexagonal Architecture** to keep domain logic isolated from infrastructure concerns.
 
-1. Java API — Financial Profile (this service)  
-2. Python API — Market Valuation (prices for crypto/stocks)  
-3. Ruby API — Email Reporting Service  
-
----
-
-## Table of Contents
-
-- [Overview](#overview)
-- [Features](#features)
-- [Data Model](#data-model)
-- [API Endpoints](#api-endpoints)
-- [Integrations](#integrations)
-- [Running the Project](#running-the-project)
-- [Docker Support](#docker-support)
-- [Testing](#testing)
-- [Roadmap](#roadmap)
-- [License](#license)
+This service is part of a larger financial portfolio system:
+- ☕ **Financial Profile API** (this repo) — Java/Spring Boot: manages users, income, expenses and assets
+- 💱 **[Price API](https://github.com/emiisomoza/price-api)** — Ruby/Sinatra: resolves real-time asset prices
+- 🐍 **[Notifier](https://github.com/emiisomoza/notifier)** — Python: consumes a queue and sends summary emails
 
 ---
 
-## Overview
+## Architecture — Hexagonal
 
-The Financial Profile API manages:
+The codebase is split into three layers with strict dependency rules:
 
-- User accounts  
-- Assets (properties, cash, stocks, crypto, etc.)  
-- Incomes and expenses  
-- Financial summary calculations  
-
-It also communicates with:
-
-- The Python Market Valuation API to fetch live asset values  
-- The Ruby Email Service to send summary reports  
-
-This service uses Hexagonal Architecture to maintain clean separation between domain logic, application use cases, and infrastructure.
+```
+domain/          → Entities, ports (interfaces), domain exceptions — no framework deps
+application/     → Use cases (services) — depends only on domain
+infrastructure/  → Web controllers, persistence, messaging, scheduling — depends on application
+```
 
 ---
 
-## Features
-
-- User registration and profile management  
-- CRUD operations for assets, incomes, and expenses  
-- Market-based valuation for stocks and cryptocurrencies  
-- Calculation of:
-  - Net worth  
-  - Monthly income  
-  - Monthly expenses  
-  - Saving capacity  
-  - Saving rate percentage  
-- Modular architecture allowing easy extension  
-- Integration with external services (Python and Ruby)  
-- Docker
-
----
-
-## Data Model
-
-### User
-- id  
-- email  
-- passwordHash  
-- fullName  
-- createdAt  
-- updatedAt  
-
-### Asset
-- id  
-- userId  
-- type (PROPERTY, VEHICLE, CASH, STOCK, CRYPTO, FUND, OTHER)  
-- name  
-- symbol (optional, for market assets)  
-- quantity  
-- valuationMode (MARKET or MANUAL)  
-- manualUnitValue  
-- currency  
-- createdAt  
-- updatedAt  
-
-### Income
-- id  
-- userId  
-- description  
-- amount  
-- frequency (MONTHLY, WEEKLY, YEARLY, ONCE)  
-- category  
-- currency  
-- startDate  
-- endDate  
-
-### Expense
-- Same structure as Income  
-
----
-
-## API Endpoints
+## Endpoints
 
 ### Users
 
 ```
 POST   /api/v1/users
 GET    /api/v1/users/{id}
+PUT    /api/v1/users/{id}/promote
+POST   /api/v1/auth/login
 ```
 
 ### Assets
@@ -140,95 +68,146 @@ DELETE /api/v1/expenses/{id}
 ### Financial Summary
 
 ```
-GET /api/v1/summary/{userId}
+GET    /api/v1/summary/{userId}?currency={currency}
 ```
 
-Example Response:
-
+Response:
 ```json
 {
-  "userId": "uuid",
-  "asOf": "2025-01-01T00:00:00Z",
-  "netWorth": 123456.78,
-  "monthlyIncome": 3000.0,
-  "monthlyExpenses": 2200.0,
-  "savingCapacity": 800.0,
-  "savingRatePercent": 26.7
+  "userId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "currency": "AUD",
+  "totalAssetsValue": 150000.00,
+  "monthlyIncome": 5000.00,
+  "monthlyExpenses": 3500.00,
+  "monthlySavings": 1500.00,
+  "savingsRate": 0.3,
+  "unpricedAssetsCount": 0
 }
 ```
+
+### Summary Subscriptions
+
+```
+POST   /api/v1/summary-subscriptions
+GET    /api/v1/summary-subscriptions/user/{userId}
+PUT    /api/v1/summary-subscriptions/{id}
+DELETE /api/v1/summary-subscriptions/{id}
+```
+
+Supported frequencies: `WEEKLY` (sends next Monday), `MONTHLY` (sends first day of next month).
+
+---
+
+## Tech Stack
+
+| | |
+|---|---|
+| Language | Java 21 |
+| Framework | Spring Boot 4.0 |
+| Persistence | Spring Data JDBC + PostgreSQL |
+| Messaging | Spring AMQP + RabbitMQ |
+| Validation | Jakarta Bean Validation |
+| Security | Spring Security Crypto (BCrypt) |
+| Testing | JUnit 5 + Mockito + TestContainers |
+| CI | GitHub Actions + JaCoCo (85% coverage gate) |
 
 ---
 
 ## Integrations
 
-### Python Market Valuation API
-Used to fetch real-time stock and crypto prices.  
-The Java API communicates through a MarketPricePort with an HTTP adapter.
+### Ruby Price API
+Used to fetch real-time prices for stocks, crypto and FX rates.
+The Java API communicates through a `MarketPricePort` with an HTTP adapter (`PriceApiClient`).
 
-### Ruby Email Report API
-Used to send financial summary emails.  
+```
+GET /v1/price?assetType=stock&asset=AAPL&currency=AUD
+```
+
+### Python Notifier
+Receives financial summary messages from RabbitMQ and sends them as email reports to users.
+The Java API publishes to the `summary.notifications` queue via a `SummaryPublisherPort`.
 
 ---
 
-## Running the Project
+## Run locally
 
-### Requirements
-- Java 21 or above  
-- Maven  
-- PostgreSQL  
+### Prerequisites
+- Java 21+
+- Maven
+- Docker (for PostgreSQL and RabbitMQ)
 
-### Start the application
-
+### Setup
+```bash
+git clone https://github.com/emiisomoza/finantial-profile-api.git
+cd finantial-profile-api
 ```
+
+### Start dependencies
+```bash
+docker compose up -d
+```
+
+### Start the server
+```bash
 mvn spring-boot:run
 ```
 
-### Health check
+API available at `http://localhost:8080`
 
-```
+### Health check
+```bash
 GET http://localhost:8080/actuator/health
 ```
 
 ---
 
-## Docker Support
+## Run tests
 
-Build the Docker image:
-
-```
-docker build -t financial-profile-api .
-```
-
-Run the image:
-
-```
-docker run -p 8080:8080 financial-profile-api
-```
-
----
-
-## Testing
-
-Run tests:
-
-```
+```bash
+# Unit and integration tests
 mvn test
+
+# Tests + coverage report (enforces 85% gate)
+mvn verify
 ```
+
+Coverage report is generated at `target/site/jacoco/index.html`.
 
 ---
 
-## Roadmap
+## Project structure
 
-- Add Swagger/OpenAPI documentation  
-- Add JWT authentication  
-- Add expense categories and analytics  
-- Add multi-currency FX conversion  
-- Add scheduling for automatic summary emails  
-- Add CI pipeline with GitHub Actions  
-- Add caching layer for market data  
+```
+finantial-profile-api/
+├── .github/
+│   └── workflows/
+│       └── ci.yml                   # GitHub Actions CI + coverage gate
+├── src/main/java/.../
+│   ├── domain/
+│   │   ├── model/                   # Entities and value objects
+│   │   ├── ports/                   # Outbound port interfaces
+│   │   ├── exceptions/              # Domain exceptions
+│   │   └── validation/              # Domain validators
+│   ├── application/
+│   │   └── usecases/                # UserService, AssetService, SummaryService, etc.
+│   └── infrastructure/
+│       ├── config/                  # Spring beans (RabbitMQ, passwords)
+│       ├── messaging/               # SummaryPublisher (RabbitMQ)
+│       ├── persistence/             # Spring Data JDBC repositories
+│       ├── pricing/                 # PriceApiClient (HTTP → Ruby API)
+│       ├── scheduling/              # SummaryScheduler (daily cron)
+│       └── web/                     # Controllers, DTOs, filters
+├── src/main/resources/
+│   ├── application.properties
+│   ├── schema.sql                   # DB schema (auto-applied on startup)
+│   └── logback-spring.xml           # Structured JSON request logging
+├── src/test/
+├── compose.yaml                     # PostgreSQL + RabbitMQ
+└── pom.xml
+```
 
 ---
 
 ## License
 
-MIT License
+MIT
