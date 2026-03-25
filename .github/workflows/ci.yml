@@ -8,6 +8,7 @@ on:
 
 jobs:
   build:
+    name: Tests & Coverage
     runs-on: ubuntu-latest
 
     steps:
