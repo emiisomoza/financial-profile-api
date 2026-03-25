@@ -53,3 +53,16 @@ CREATE TABLE IF NOT EXISTS expenses (
     CONSTRAINT fk_expenses_user
         FOREIGN KEY (user_id) REFERENCES users(id)
 );
+
+CREATE TABLE IF NOT EXISTS summary_subscriptions (
+    id               UUID PRIMARY KEY,
+    user_id          UUID NOT NULL,
+    frequency        VARCHAR(20) NOT NULL,
+    currency         VARCHAR(3) NOT NULL,
+    status           VARCHAR(20) NOT NULL,
+    next_send_at     TIMESTAMP NOT NULL,
+    created_at       TIMESTAMP NOT NULL,
+
+    CONSTRAINT fk_summary_subscriptions_user
+        FOREIGN KEY (user_id) REFERENCES users(id)
+);
