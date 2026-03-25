@@ -20,7 +20,7 @@ public class MarketPriceAdapter implements MarketPricePort {
 
     @Override
     public BigDecimal getPrice(String assetType, String symbol, String targetCurrency) {
-        log.info("Fetching price for assetType={} symbol={} currency={}", assetType, symbol, targetCurrency);
+        log.debug("Fetching price for assetType={} symbol={} currency={}", assetType, symbol, targetCurrency);
         try {
             return priceApiClient.fetchPrice(assetType, symbol, targetCurrency);
         } catch (Exception e) {
