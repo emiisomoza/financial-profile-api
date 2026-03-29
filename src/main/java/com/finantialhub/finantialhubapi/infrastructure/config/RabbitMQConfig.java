@@ -4,6 +4,8 @@ import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -27,6 +29,11 @@ public class RabbitMQConfig {
     @Bean
     public Binding summaryBinding(Queue summaryQueue, DirectExchange summaryExchange) {
         return BindingBuilder.bind(summaryQueue).to(summaryExchange).with(ROUTING_KEY);
+    }
+
+    @Bean
+    public ApplicationRunner rabbitEagerConnect(CachingConnectionFactory connectionFactory) {
+        return args -> connectionFactory.createConnection().close();
     }
 
 }
