@@ -5,6 +5,7 @@ import com.finantialhub.finantialhubapi.application.usecases.AuthService;
 import com.finantialhub.finantialhubapi.domain.exceptions.InvalidCredentialsException;
 import com.finantialhub.finantialhubapi.domain.model.Role;
 import com.finantialhub.finantialhubapi.domain.model.User;
+import com.finantialhub.finantialhubapi.infrastructure.security.JwtService;
 import com.finantialhub.finantialhubapi.infrastructure.web.AuthController;
 import com.finantialhub.finantialhubapi.infrastructure.web.dto.UserDtos.LoginRequest;
 import org.junit.jupiter.api.Test;
@@ -31,6 +32,9 @@ class AuthControllerTest {
     @MockitoBean
     private AuthService authService;
 
+    @MockitoBean
+    private JwtService jwtService;
+
     @Autowired
     private ObjectMapper objectMapper;
 
@@ -49,6 +53,7 @@ class AuthControllerTest {
 
         when(authService.authenticate("user@example.com", "Abcdef12!"))
                 .thenReturn(user);
+        when(jwtService.generateToken(user)).thenReturn("mocked-jwt-token");
 
         LoginRequest request = new LoginRequest("user@example.com", "Abcdef12!");
 
@@ -59,7 +64,8 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.id").value(id.toString()))
                 .andExpect(jsonPath("$.email").value("user@example.com"))
                 .andExpect(jsonPath("$.fullName").value("John Doe"))
-                .andExpect(jsonPath("$.role").value("MEMBER"));
+                .andExpect(jsonPath("$.role").value("MEMBER"))
+                .andExpect(jsonPath("$.token").value("mocked-jwt-token"));
     }
 
     @Test
