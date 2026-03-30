@@ -7,6 +7,7 @@ import com.finantialhub.finantialhubapi.infrastructure.web.dto.UserDtos.CreateUs
 import com.finantialhub.finantialhubapi.infrastructure.web.dto.UserDtos.UserResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
@@ -31,6 +32,7 @@ public class UserController {
         return ResponseEntity.created(location).body(body);
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @GetMapping
     public ResponseEntity<List<UserResponse>> getAllUsers() {
         List<UserResponse> response = userService.getAllUsers().stream()
@@ -53,7 +55,7 @@ public class UserController {
         return ResponseEntity.ok(UserResponse.from(updated));
     }
 
-    //Will add security later to restrict this endpoint (and others) only to admins
+    @PreAuthorize("hasAuthority('ADMIN')")
     @PostMapping("/{id}/promote")
     public ResponseEntity<UserResponse> promoteUserToAdmin(@PathVariable UUID id) {
         User promoted = userService.promoteUserToAdmin(id);
