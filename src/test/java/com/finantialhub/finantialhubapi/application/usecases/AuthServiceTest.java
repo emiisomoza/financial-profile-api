@@ -1,7 +1,6 @@
 package com.finantialhub.finantialhubapi.application.usecases;
 
 import com.finantialhub.finantialhubapi.domain.exceptions.InvalidCredentialsException;
-import com.finantialhub.finantialhubapi.domain.exceptions.UserNotFoundException;
 import com.finantialhub.finantialhubapi.domain.model.Role;
 import com.finantialhub.finantialhubapi.domain.model.User;
 import com.finantialhub.finantialhubapi.infrastructure.persistence.UserRepository;
@@ -78,7 +77,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void authenticate_shouldThrowUserNotFound_whenEmailDoesNotExist() {
+    void authenticate_shouldThrowInvalidCredentials_whenEmailDoesNotExist() {
         String email = "missing@example.com";
         String rawPassword = "Abcdef12!";
 
@@ -86,7 +85,7 @@ class AuthServiceTest {
 
         AuthService authService = new AuthService(userRepository, passwordEncoder);
 
-        assertThrows(UserNotFoundException.class,
+        assertThrows(InvalidCredentialsException.class,
                 () -> authService.authenticate(email, rawPassword));
     }
 }
