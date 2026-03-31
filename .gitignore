@@ -31,3 +31,6 @@ target/
 # Intellij directory
 .idea/
 
+# Local secrets
+.env
+
