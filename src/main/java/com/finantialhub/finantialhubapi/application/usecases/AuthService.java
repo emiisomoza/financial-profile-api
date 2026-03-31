@@ -1,7 +1,6 @@
 package com.finantialhub.finantialhubapi.application.usecases;
 
 import com.finantialhub.finantialhubapi.domain.exceptions.InvalidCredentialsException;
-import com.finantialhub.finantialhubapi.domain.exceptions.UserNotFoundException;
 import com.finantialhub.finantialhubapi.domain.model.User;
 import com.finantialhub.finantialhubapi.infrastructure.persistence.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -20,15 +19,13 @@ public class AuthService {
     }
 
     public User authenticate(String email, String rawPassword) {
-
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("User not found with email " + email));
+                .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
 
         if (!passwordEncoder.matches(rawPassword, user.getPasswordHash())) {
             throw new InvalidCredentialsException("Invalid email or password");
         }
 
-        // here we could generate a JWT or session token instead
         return user;
     }
 }

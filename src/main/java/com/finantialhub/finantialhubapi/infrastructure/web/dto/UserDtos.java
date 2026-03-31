@@ -68,15 +68,16 @@ public class UserDtos {
             UUID id,
             String email,
             String fullName,
-            Role role
-            // Later we can add: String token
+            Role role,
+            String token
     ) {
-        public static LoginResponse from(User user) {
+        public static LoginResponse from(User user, String token) {
             return new LoginResponse(
                     user.getId(),
                     user.getEmail(),
                     user.getFullName(),
-                    user.getRole()
+                    user.getRole(),
+                    token
             );
         }
     }
