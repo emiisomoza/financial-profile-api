@@ -5,12 +5,10 @@ import com.finantialhub.finantialhubapi.application.usecases.AssetService.Create
 import com.finantialhub.finantialhubapi.domain.model.Asset;
 import com.finantialhub.finantialhubapi.infrastructure.security.SecurityUtils;
 import com.finantialhub.finantialhubapi.infrastructure.web.dto.AssetDtos.*;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.net.URI;
 import java.util.List;
@@ -70,9 +68,7 @@ public class AssetController {
             @RequestBody UpdateAssetRequest request) {
 
         Asset existing = assetService.getAssetById(id);
-        if (!SecurityUtils.isAdmin(jwt) && !existing.getUserId().equals(SecurityUtils.extractUserId(jwt))) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-        }
+        SecurityUtils.requireOwnership(jwt, existing.getUserId());
 
         AssetService.UpdateAssetCommand cmd = new AssetService.UpdateAssetCommand(
                 request.name(),

@@ -12,7 +12,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
 
@@ -41,9 +40,7 @@ public class SummarySubscriptionController {
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID userId) {
 
-        if (!SecurityUtils.isAdmin(jwt) && !userId.equals(SecurityUtils.extractUserId(jwt))) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-        }
+        SecurityUtils.requireOwnership(jwt, userId);
 
         SummarySubscription subscription = subscriptionService.getActiveForUser(userId);
         return ResponseEntity.ok(SubscriptionResponse.from(subscription));
@@ -56,9 +53,7 @@ public class SummarySubscriptionController {
             @Valid @RequestBody UpdateSubscriptionRequest request) {
 
         SummarySubscription existing = subscriptionService.getSubscriptionById(id);
-        if (!SecurityUtils.isAdmin(jwt) && !existing.getUserId().equals(SecurityUtils.extractUserId(jwt))) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-        }
+        SecurityUtils.requireOwnership(jwt, existing.getUserId());
 
         SummarySubscription subscription = subscriptionService.updateFrequency(id, request.frequency());
         return ResponseEntity.ok(SubscriptionResponse.from(subscription));
@@ -70,9 +65,7 @@ public class SummarySubscriptionController {
             @PathVariable UUID id) {
 
         SummarySubscription existing = subscriptionService.getSubscriptionById(id);
-        if (!SecurityUtils.isAdmin(jwt) && !existing.getUserId().equals(SecurityUtils.extractUserId(jwt))) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-        }
+        SecurityUtils.requireOwnership(jwt, existing.getUserId());
 
         subscriptionService.cancel(id);
         return ResponseEntity.noContent().build();

@@ -7,13 +7,11 @@ import com.finantialhub.finantialhubapi.infrastructure.web.dto.UserDtos.UpdateUs
 import com.finantialhub.finantialhubapi.infrastructure.web.dto.UserDtos.CreateUserRequest;
 import com.finantialhub.finantialhubapi.infrastructure.web.dto.UserDtos.UserResponse;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.net.URI;
 import java.util.List;
@@ -51,9 +49,7 @@ public class UserController {
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID id) {
 
-        if (!SecurityUtils.isAdmin(jwt) && !id.equals(SecurityUtils.extractUserId(jwt))) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-        }
+        SecurityUtils.requireOwnership(jwt, id);
 
         User user = userService.getUser(id);
         return new UserResponse(user.getId(), user.getEmail(), user.getFullName(), user.getRole(), user.getCreatedAt());
@@ -65,9 +61,7 @@ public class UserController {
             @PathVariable UUID id,
             @Valid @RequestBody UpdateUserRequest request) {
 
-        if (!SecurityUtils.isAdmin(jwt) && !id.equals(SecurityUtils.extractUserId(jwt))) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-        }
+        SecurityUtils.requireOwnership(jwt, id);
 
         User updated = userService.updateUser(id, request.email(), request.fullName());
         return ResponseEntity.ok(UserResponse.from(updated));

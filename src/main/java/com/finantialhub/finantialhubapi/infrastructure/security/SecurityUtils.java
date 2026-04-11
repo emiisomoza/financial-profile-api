@@ -1,6 +1,8 @@
 package com.finantialhub.finantialhubapi.infrastructure.security;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
 
@@ -25,5 +27,15 @@ public final class SecurityUtils {
             return requestedUserId;
         }
         return extractUserId(jwt);
+    }
+
+    /**
+     * Throws 404 if the caller is not ADMIN and the target id does not match the JWT userId.
+     * Uses NOT_FOUND instead of FORBIDDEN to avoid leaking resource existence.
+     */
+    public static void requireOwnership(Jwt jwt, UUID id) {
+        if (!isAdmin(jwt) && !id.equals(extractUserId(jwt))) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
     }
 }
