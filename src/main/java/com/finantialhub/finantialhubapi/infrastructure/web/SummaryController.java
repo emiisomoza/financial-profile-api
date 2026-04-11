@@ -1,9 +1,12 @@
 package com.finantialhub.finantialhubapi.infrastructure.web;
 
 import com.finantialhub.finantialhubapi.application.usecases.SummaryService;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import com.finantialhub.finantialhubapi.infrastructure.security.SecurityUtils;
 import com.finantialhub.finantialhubapi.infrastructure.web.dto.SummaryDtos.SummaryResponse;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
@@ -19,8 +22,12 @@ public class SummaryController {
 
     @GetMapping("/{userId}")
     public ResponseEntity<SummaryResponse> getSummary(
+            @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID userId,
             @RequestParam(defaultValue = "AUD") String currency) {
+
+        SecurityUtils.requireOwnership(jwt, userId);
+
         SummaryService.Summary summary = summaryService.getSummary(userId, currency);
         return ResponseEntity.ok(SummaryResponse.from(summary));
     }

@@ -1,12 +1,13 @@
 package com.finantialhub.finantialhubapi.infrastructure.web.dto;
 
 import com.finantialhub.finantialhubapi.domain.model.Asset;
+import org.springframework.lang.Nullable;
 
 import java.math.BigDecimal;
 
 public class AssetDtos {
     public record CreateAssetRequest(
-            String userId,
+            @Nullable String userId,
             String type,
             String name,
             String symbol,

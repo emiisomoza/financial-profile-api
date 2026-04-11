@@ -1,9 +1,12 @@
 package com.finantialhub.finantialhubapi.infrastructure.web;
 
 import com.finantialhub.finantialhubapi.application.usecases.ExpenseService;
+import com.finantialhub.finantialhubapi.infrastructure.security.SecurityUtils;
 import com.finantialhub.finantialhubapi.infrastructure.web.dto.ExpenseDtos.*;
 import com.finantialhub.finantialhubapi.domain.model.Expense;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
@@ -21,9 +24,15 @@ public class ExpenseController {
     }
 
     @PostMapping
-    public ResponseEntity<ExpenseResponse> createExpense(@RequestBody CreateExpenseRequest request) {
+    public ResponseEntity<ExpenseResponse> createExpense(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody CreateExpenseRequest request) {
+
+        UUID userId = SecurityUtils.resolveUserId(jwt,
+                request.userId() != null ? UUID.fromString(request.userId()) : null);
+
         ExpenseService.CreateExpenseCommand cmd = new ExpenseService.CreateExpenseCommand(
-                UUID.fromString(request.userId()),
+                userId,
                 request.category(),
                 request.description(),
                 request.frequency(),
@@ -39,8 +48,12 @@ public class ExpenseController {
     }
 
     @GetMapping
-    public List<ExpenseResponse> listExpenses(@RequestParam("userId") UUID userId) {
-        return expenseService.getExpensesForUser(userId)
+    public List<ExpenseResponse> listExpenses(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(required = false) UUID userId) {
+
+        UUID resolvedId = SecurityUtils.resolveUserId(jwt, userId);
+        return expenseService.getExpensesForUser(resolvedId)
                 .stream()
                 .map(ExpenseResponse::from)
                 .toList();

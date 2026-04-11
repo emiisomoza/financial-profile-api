@@ -2,13 +2,14 @@ package com.finantialhub.finantialhubapi.infrastructure.web.dto;
 
 import com.finantialhub.finantialhubapi.domain.model.Expense;
 import com.finantialhub.finantialhubapi.domain.model.ExpenseFrequency;
+import org.springframework.lang.Nullable;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public class ExpenseDtos {
     public record CreateExpenseRequest(
-            String userId,
+            @Nullable String userId,
             String category,
             String description,
             ExpenseFrequency frequency,

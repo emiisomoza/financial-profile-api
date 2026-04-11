@@ -48,6 +48,12 @@ public class SummarySubscriptionService {
         subscriptionRepository.save(existing.cancelled());
     }
 
+    public SummarySubscription getSubscriptionById(UUID subscriptionId) {
+        return subscriptionRepository.findById(subscriptionId)
+                .orElseThrow(() -> new SubscriptionNotFoundException(
+                        "Subscription not found with id: " + subscriptionId));
+    }
+
     public SummarySubscription getActiveForUser(UUID userId) {
         return subscriptionRepository.findByUserIdAndStatus(userId, SummarySubscription.Status.ACTIVE)
                 .orElseThrow(() -> new SubscriptionNotFoundException(

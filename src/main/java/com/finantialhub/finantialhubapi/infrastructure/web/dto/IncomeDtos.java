@@ -1,13 +1,14 @@
 package com.finantialhub.finantialhubapi.infrastructure.web.dto;
 
 import com.finantialhub.finantialhubapi.domain.model.Income;
+import org.springframework.lang.Nullable;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public class IncomeDtos {
     public record CreateIncomeRequest(
-            String userId,
+            @Nullable String userId,
             String source,
             String frequency,
             BigDecimal amount,

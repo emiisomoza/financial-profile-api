@@ -4,13 +4,14 @@ import com.finantialhub.finantialhubapi.domain.model.SummarySubscription;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import org.springframework.lang.Nullable;
 
 import java.util.UUID;
 
 public class SummarySubscriptionDtos {
 
     public record CreateSubscriptionRequest(
-            @NotNull UUID userId,
+            @Nullable UUID userId,
             @NotNull SummarySubscription.Frequency frequency,
             @NotBlank @Pattern(regexp = "^[A-Z]{3}$", message = "must be a 3-letter currency code") String currency
     ) {}

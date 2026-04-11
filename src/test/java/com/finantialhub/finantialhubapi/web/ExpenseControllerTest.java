@@ -6,12 +6,23 @@ import com.finantialhub.finantialhubapi.application.usecases.ExpenseService;
 import com.finantialhub.finantialhubapi.domain.model.Expense;
 import com.finantialhub.finantialhubapi.domain.model.ExpenseCategory;
 import com.finantialhub.finantialhubapi.domain.model.ExpenseFrequency;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
+import org.springframework.web.method.support.HandlerMethodArgumentResolver;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -28,44 +39,74 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(controllers = ExpenseController.class)
 class ExpenseControllerTest {
 
+    @TestConfiguration
+    static class SecurityTestConfig implements WebMvcConfigurer {
+        @Override
+        public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
+            resolvers.add(new AuthenticationPrincipalArgumentResolver());
+        }
+    }
+
     @Autowired MockMvc mockMvc;
     @Autowired ObjectMapper objectMapper;
 
     @MockitoBean ExpenseService expenseService;
 
-    @Test
-    void createExpense_returns201AndBody() throws Exception {
-        UUID userId = UUID.randomUUID();
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
+    }
 
-        CreateExpenseRequest request = new CreateExpenseRequest(
-                userId.toString(),
-                "RENT",
-                "Rent payment",
-                ExpenseFrequency.MONTHLY,
-                new BigDecimal("2400.00"),
-                "AUD",
-                LocalDate.parse("2026-01-01"),
-                null
-        );
+    private static RequestPostProcessor memberJwt(UUID userId) {
+        return jwtContext(userId, "MEMBER");
+    }
 
-        Expense expense = new Expense(
-                UUID.randomUUID(),
-                userId,
-                ExpenseCategory.RENT,
-                "Rent payment",
+    private static RequestPostProcessor adminJwt(UUID adminId) {
+        return jwtContext(adminId, "ADMIN");
+    }
+
+    private static RequestPostProcessor jwtContext(UUID userId, String role) {
+        return request -> {
+            Jwt jwt = Jwt.withTokenValue("test-token")
+                    .header("alg", "HS256")
+                    .subject(userId.toString())
+                    .claim("role", role)
+                    .build();
+            JwtAuthenticationToken auth = new JwtAuthenticationToken(jwt,
+                    List.of(new SimpleGrantedAuthority(role)));
+            SecurityContext context = SecurityContextHolder.createEmptyContext();
+            context.setAuthentication(auth);
+            SecurityContextHolder.setContext(context);
+            return request;
+        };
+    }
+
+    private Expense sampleExpense(UUID userId) {
+        return new Expense(
+                UUID.randomUUID(), userId,
+                ExpenseCategory.RENT, "Rent payment",
                 ExpenseFrequency.MONTHLY,
-                new BigDecimal("2400.00"),
-                "AUD",
-                LocalDate.parse("2026-01-01"),
-                null,
+                new BigDecimal("2400.00"), "AUD",
+                LocalDate.parse("2026-01-01"), null,
                 Instant.now()
         );
+    }
 
+    // ── POST /api/v1/expenses ─────────────────────────────────────────────────
+
+    @Test
+    void createExpense_memberExtractsUserIdFromJwt() throws Exception {
+        UUID userId = UUID.randomUUID();
+        Expense expense = sampleExpense(userId);
         when(expenseService.createExpense(any())).thenReturn(expense);
 
         mockMvc.perform(post("/api/v1/expenses")
+                        .with(memberJwt(userId))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content("""
+                            {"category":"RENT","description":"Rent payment","frequency":"MONTHLY",
+                             "amount":2400.00,"currency":"AUD","startsAt":"2026-01-01"}
+                            """))
                 .andExpect(status().isCreated())
                 .andExpect(header().exists("Location"))
                 .andExpect(jsonPath("$.userId").value(userId.toString()))
@@ -74,38 +115,49 @@ class ExpenseControllerTest {
     }
 
     @Test
-    void listExpenses_returns200AndList() throws Exception {
-        UUID userId = UUID.randomUUID();
+    void createExpense_adminCanSpecifyAnotherUserId() throws Exception {
+        UUID adminId = UUID.randomUUID();
+        UUID targetUserId = UUID.randomUUID();
+        Expense expense = sampleExpense(targetUserId);
+        when(expenseService.createExpense(any())).thenReturn(expense);
 
-        Expense expense = new Expense(
-                UUID.randomUUID(),
-                userId,
-                ExpenseCategory.GROCERIES,
-                "Weekly groceries",
-                ExpenseFrequency.WEEKLY,
-                new BigDecimal("220.00"),
-                "AUD",
-                LocalDate.parse("2026-01-01"),
-                null,
-                Instant.now()
-        );
-
-        when(expenseService.getExpensesForUser(userId)).thenReturn(List.of(expense));
-
-        mockMvc.perform(get("/api/v1/expenses").param("userId", userId.toString()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].userId").value(userId.toString()))
-                .andExpect(jsonPath("$[0].category").value("GROCERIES"));
+        mockMvc.perform(post("/api/v1/expenses")
+                        .with(adminJwt(adminId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"userId":"%s","category":"RENT","description":"Rent payment","frequency":"MONTHLY",
+                             "amount":2400.00,"currency":"AUD","startsAt":"2026-01-01"}
+                            """.formatted(targetUserId)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.userId").value(targetUserId.toString()));
     }
 
-    record CreateExpenseRequest(
-            String userId,
-            String category,
-            String description,
-            ExpenseFrequency frequency,
-            BigDecimal amount,
-            String currency,
-            LocalDate startsAt,
-            LocalDate endsAt
-    ) {}
+    // ── GET /api/v1/expenses ──────────────────────────────────────────────────
+
+    @Test
+    void listExpenses_memberGetsOwnExpenses() throws Exception {
+        UUID userId = UUID.randomUUID();
+        Expense expense = sampleExpense(userId);
+        when(expenseService.getExpensesForUser(userId)).thenReturn(List.of(expense));
+
+        mockMvc.perform(get("/api/v1/expenses")
+                        .with(memberJwt(userId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].userId").value(userId.toString()))
+                .andExpect(jsonPath("$[0].category").value("RENT"));
+    }
+
+    @Test
+    void listExpenses_adminCanQueryOtherUser() throws Exception {
+        UUID adminId = UUID.randomUUID();
+        UUID targetUserId = UUID.randomUUID();
+        Expense expense = sampleExpense(targetUserId);
+        when(expenseService.getExpensesForUser(targetUserId)).thenReturn(List.of(expense));
+
+        mockMvc.perform(get("/api/v1/expenses")
+                        .param("userId", targetUserId.toString())
+                        .with(adminJwt(adminId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].userId").value(targetUserId.toString()));
+    }
 }
