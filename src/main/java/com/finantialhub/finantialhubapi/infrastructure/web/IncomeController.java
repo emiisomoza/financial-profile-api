@@ -1,9 +1,12 @@
 package com.finantialhub.finantialhubapi.infrastructure.web;
 
 import com.finantialhub.finantialhubapi.application.usecases.IncomeService;
+import com.finantialhub.finantialhubapi.infrastructure.security.SecurityUtils;
 import com.finantialhub.finantialhubapi.infrastructure.web.dto.IncomeDtos.*;
 import com.finantialhub.finantialhubapi.domain.model.Income;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
@@ -21,9 +24,15 @@ public class IncomeController {
     }
 
     @PostMapping
-    public ResponseEntity<IncomeResponse> createIncome(@RequestBody CreateIncomeRequest request) {
+    public ResponseEntity<IncomeResponse> createIncome(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody CreateIncomeRequest request) {
+
+        UUID userId = SecurityUtils.resolveUserId(jwt,
+                request.userId() != null ? UUID.fromString(request.userId()) : null);
+
         IncomeService.CreateIncomeCommand cmd = new IncomeService.CreateIncomeCommand(
-                UUID.fromString(request.userId()),
+                userId,
                 request.source(),
                 request.frequency(),
                 request.amount(),
@@ -38,8 +47,12 @@ public class IncomeController {
     }
 
     @GetMapping
-    public List<IncomeResponse> listIncomes(@RequestParam("userId") UUID userId) {
-        return incomeService.getIncomesForUser(userId)
+    public List<IncomeResponse> listIncomes(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(required = false) UUID userId) {
+
+        UUID resolvedId = SecurityUtils.resolveUserId(jwt, userId);
+        return incomeService.getIncomesForUser(resolvedId)
                 .stream()
                 .map(IncomeResponse::from)
                 .toList();

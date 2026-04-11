@@ -3,9 +3,14 @@ package com.finantialhub.finantialhubapi.infrastructure.web;
 import com.finantialhub.finantialhubapi.application.usecases.AssetService;
 import com.finantialhub.finantialhubapi.application.usecases.AssetService.CreateAssetCommand;
 import com.finantialhub.finantialhubapi.domain.model.Asset;
+import com.finantialhub.finantialhubapi.infrastructure.security.SecurityUtils;
 import com.finantialhub.finantialhubapi.infrastructure.web.dto.AssetDtos.*;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.net.URI;
 import java.util.List;
@@ -22,9 +27,15 @@ public class AssetController {
     }
 
     @PostMapping
-    public ResponseEntity<AssetResponse> createAsset(@RequestBody CreateAssetRequest request) {
+    public ResponseEntity<AssetResponse> createAsset(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody CreateAssetRequest request) {
+
+        UUID userId = SecurityUtils.resolveUserId(jwt,
+                request.userId() != null ? UUID.fromString(request.userId()) : null);
+
         CreateAssetCommand cmd = new CreateAssetCommand(
-                UUID.fromString(request.userId()),
+                userId,
                 request.type(),
                 request.name(),
                 request.symbol(),
@@ -35,15 +46,18 @@ public class AssetController {
         );
 
         Asset asset = assetService.createAsset(cmd);
-
         AssetResponse body = AssetResponse.from(asset);
         URI location = URI.create("/api/v1/assets/" + asset.getId());
         return ResponseEntity.created(location).body(body);
     }
 
     @GetMapping
-    public List<AssetResponse> listAssets(@RequestParam("userId") UUID userId) {
-        return assetService.getAssetsForUser(userId)
+    public List<AssetResponse> listAssets(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(required = false) UUID userId) {
+
+        UUID resolvedId = SecurityUtils.resolveUserId(jwt, userId);
+        return assetService.getAssetsForUser(resolvedId)
                 .stream()
                 .map(AssetResponse::from)
                 .toList();
@@ -51,8 +65,14 @@ public class AssetController {
 
     @PutMapping("/{id}")
     public ResponseEntity<AssetResponse> updateAsset(
+            @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID id,
             @RequestBody UpdateAssetRequest request) {
+
+        Asset existing = assetService.getAssetById(id);
+        if (!SecurityUtils.isAdmin(jwt) && !existing.getUserId().equals(SecurityUtils.extractUserId(jwt))) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
 
         AssetService.UpdateAssetCommand cmd = new AssetService.UpdateAssetCommand(
                 request.name(),

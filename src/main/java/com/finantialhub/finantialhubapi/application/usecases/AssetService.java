@@ -42,6 +42,11 @@ public class AssetService {
         return assetRepository.findByUserId(userId);
     }
 
+    public Asset getAssetById(UUID assetId) {
+        return assetRepository.findById(assetId)
+                .orElseThrow(() -> new AssetNotFoundException(assetId));
+    }
+
     // command object from controller to service
     public record CreateAssetCommand(
             UUID userId,

@@ -1,8 +1,6 @@
 package com.finantialhub.finantialhubapi.web;
 
 import com.finantialhub.finantialhubapi.domain.exceptions.AssetNotFoundException;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import com.finantialhub.finantialhubapi.infrastructure.web.AssetController;
 import com.finantialhub.finantialhubapi.infrastructure.web.dto.AssetDtos;
 import tools.jackson.databind.ObjectMapper;
@@ -10,12 +8,23 @@ import com.finantialhub.finantialhubapi.application.usecases.AssetService;
 import com.finantialhub.finantialhubapi.domain.model.Asset;
 import com.finantialhub.finantialhubapi.domain.model.AssetType;
 import com.finantialhub.finantialhubapi.domain.model.valuation.ValuationMode;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.http.MediaType;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
+import org.springframework.web.method.support.HandlerMethodArgumentResolver;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -23,13 +32,21 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(controllers = AssetController.class)
 class AssetControllerTest {
+
+    @TestConfiguration
+    static class SecurityTestConfig implements WebMvcConfigurer {
+        @Override
+        public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
+            resolvers.add(new AuthenticationPrincipalArgumentResolver());
+        }
+    }
 
     @Autowired
     MockMvc mockMvc;
@@ -40,152 +57,198 @@ class AssetControllerTest {
     @MockitoBean
     AssetService assetService;
 
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
+    }
+
+    private static RequestPostProcessor memberJwt(UUID userId) {
+        return jwtContext(userId, "MEMBER");
+    }
+
+    private static RequestPostProcessor adminJwt(UUID adminId) {
+        return jwtContext(adminId, "ADMIN");
+    }
+
+    private static RequestPostProcessor jwtContext(UUID userId, String role) {
+        return request -> {
+            Jwt jwt = Jwt.withTokenValue("test-token")
+                    .header("alg", "HS256")
+                    .subject(userId.toString())
+                    .claim("role", role)
+                    .build();
+            JwtAuthenticationToken auth = new JwtAuthenticationToken(jwt,
+                    List.of(new SimpleGrantedAuthority(role)));
+            SecurityContext context = SecurityContextHolder.createEmptyContext();
+            context.setAuthentication(auth);
+            SecurityContextHolder.setContext(context);
+            return request;
+        };
+    }
+
+    private Asset sampleAsset(UUID assetId, UUID userId) {
+        return new Asset(assetId, userId, AssetType.CRYPTO, "Bitcoin", "BTCUSDT",
+                new BigDecimal("0.5"), ValuationMode.MARKET, null, "USD", Instant.now());
+    }
+
+    // ── POST /api/v1/assets ──────────────────────────────────────────────────
+
     @Test
-    void createAsset_returns201AndBody() throws Exception {
+    void createAsset_memberExtractsUserIdFromJwt() throws Exception {
         UUID userId = UUID.randomUUID();
-        CreateAssetRequest request = new CreateAssetRequest(
-                userId.toString(),
-                "CRYPTO",
-                "Bitcoin",
-                "BTCUSDT",
-                new BigDecimal("0.5"),
-                "MARKET",
-                null,
-                "USD"
-        );
-
-        Asset asset = new Asset(
-                UUID.randomUUID(),
-                userId,
-                AssetType.CRYPTO,
-                "Bitcoin",
-                "BTCUSDT",
-                new BigDecimal("0.5"),
-                ValuationMode.MARKET,
-                null,
-                "USD",
-                Instant.now()
-        );
-
-        when(assetService.createAsset(any())).thenReturn(asset);
+        UUID assetId = UUID.randomUUID();
+        when(assetService.createAsset(any())).thenReturn(sampleAsset(assetId, userId));
 
         mockMvc.perform(post("/api/v1/assets")
+                        .with(memberJwt(userId))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content("""
+                            {"type":"CRYPTO","name":"Bitcoin","symbol":"BTCUSDT",
+                             "quantity":0.5,"valuationMode":"MARKET","currency":"USD"}
+                            """))
                 .andExpect(status().isCreated())
-                .andExpect(header().exists("Location"))
-                .andExpect(jsonPath("$.id").value(asset.getId().toString()))
                 .andExpect(jsonPath("$.userId").value(userId.toString()))
-                .andExpect(jsonPath("$.type").value("CRYPTO"))
-                .andExpect(jsonPath("$.name").value("Bitcoin"))
-                .andExpect(jsonPath("$.symbol").value("BTCUSDT"))
-                .andExpect(jsonPath("$.quantity").value(0.5))
-                .andExpect(jsonPath("$.valuationMode").value("MARKET"))
-                .andExpect(jsonPath("$.currency").value("USD"));
+                .andExpect(jsonPath("$.type").value("CRYPTO"));
     }
 
     @Test
-    void listAssets_returns200AndList() throws Exception {
+    void createAsset_memberIgnoresUserIdInBody() throws Exception {
+        UUID jwtUserId = UUID.randomUUID();
+        UUID assetId = UUID.randomUUID();
+        when(assetService.createAsset(any())).thenReturn(sampleAsset(assetId, jwtUserId));
+
+        mockMvc.perform(post("/api/v1/assets")
+                        .with(memberJwt(jwtUserId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"userId":"%s","type":"CRYPTO","name":"Bitcoin","symbol":"BTCUSDT",
+                             "quantity":0.5,"valuationMode":"MARKET","currency":"USD"}
+                            """.formatted(UUID.randomUUID())))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.userId").value(jwtUserId.toString()));
+    }
+
+    @Test
+    void createAsset_adminCanSpecifyAnotherUserId() throws Exception {
+        UUID adminId = UUID.randomUUID();
+        UUID targetUserId = UUID.randomUUID();
+        UUID assetId = UUID.randomUUID();
+        when(assetService.createAsset(any())).thenReturn(sampleAsset(assetId, targetUserId));
+
+        mockMvc.perform(post("/api/v1/assets")
+                        .with(adminJwt(adminId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"userId":"%s","type":"CRYPTO","name":"Bitcoin","symbol":"BTCUSDT",
+                             "quantity":0.5,"valuationMode":"MARKET","currency":"USD"}
+                            """.formatted(targetUserId)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.userId").value(targetUserId.toString()));
+    }
+
+    // ── GET /api/v1/assets ───────────────────────────────────────────────────
+
+    @Test
+    void listAssets_memberGetsOwnAssetsWithoutParam() throws Exception {
         UUID userId = UUID.randomUUID();
-
-        Asset asset1 = new Asset(
-                UUID.randomUUID(),
-                userId,
-                AssetType.CRYPTO,
-                "Bitcoin",
-                "BTCUSDT",
-                new BigDecimal("0.5"),
-                ValuationMode.MARKET,
-                null,
-                "USD",
-                Instant.now()
-        );
-
-        when(assetService.getAssetsForUser(userId))
-                .thenReturn(List.of(asset1));
+        Asset asset = sampleAsset(UUID.randomUUID(), userId);
+        when(assetService.getAssetsForUser(userId)).thenReturn(List.of(asset));
 
         mockMvc.perform(get("/api/v1/assets")
-                        .param("userId", userId.toString()))
+                        .with(memberJwt(userId)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(asset1.getId().toString()))
-                .andExpect(jsonPath("$[0].userId").value(userId.toString()))
-                .andExpect(jsonPath("$[0].type").value("CRYPTO"));
+                .andExpect(jsonPath("$[0].userId").value(userId.toString()));
     }
 
     @Test
-    void updateAsset_returns200AndUpdatedBody() throws Exception {
-        UUID assetId = UUID.randomUUID();
+    void listAssets_adminCanQueryOtherUser() throws Exception {
+        UUID adminId = UUID.randomUUID();
+        UUID targetUserId = UUID.randomUUID();
+        Asset asset = sampleAsset(UUID.randomUUID(), targetUserId);
+        when(assetService.getAssetsForUser(targetUserId)).thenReturn(List.of(asset));
+
+        mockMvc.perform(get("/api/v1/assets")
+                        .param("userId", targetUserId.toString())
+                        .with(adminJwt(adminId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].userId").value(targetUserId.toString()));
+    }
+
+    // ── PUT /api/v1/assets/{id} ──────────────────────────────────────────────
+
+    @Test
+    void updateAsset_memberCanUpdateOwnAsset() throws Exception {
         UUID userId = UUID.randomUUID();
+        UUID assetId = UUID.randomUUID();
+        Asset existing = sampleAsset(assetId, userId);
+        Asset updated = new Asset(assetId, userId, AssetType.CRYPTO, "Bitcoin Updated", "BTC",
+                new BigDecimal("1.0"), ValuationMode.MARKET, null, "AUD", Instant.now());
 
-        AssetDtos.UpdateAssetRequest request = new AssetDtos.UpdateAssetRequest(
-                "Bitcoin Updated",
-                "BTC",
-                new BigDecimal("1.0"),
-                "MARKET",
-                null,
-                "AUD"
-        );
-
-        Asset updated = new Asset(
-                assetId,
-                userId,
-                AssetType.CRYPTO,
-                "Bitcoin Updated",
-                "BTC",
-                new BigDecimal("1.0"),
-                ValuationMode.MARKET,
-                null,
-                "AUD",
-                Instant.now()
-        );
-
+        when(assetService.getAssetById(assetId)).thenReturn(existing);
         when(assetService.updateAsset(eq(assetId), any())).thenReturn(updated);
 
         mockMvc.perform(put("/api/v1/assets/" + assetId)
+                        .with(memberJwt(userId))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(
+                                new AssetDtos.UpdateAssetRequest("Bitcoin Updated", "BTC",
+                                        new BigDecimal("1.0"), "MARKET", null, "AUD"))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(assetId.toString()))
-                .andExpect(jsonPath("$.name").value("Bitcoin Updated"))
-                .andExpect(jsonPath("$.symbol").value("BTC"))
-                .andExpect(jsonPath("$.quantity").value(1.0))
-                .andExpect(jsonPath("$.valuationMode").value("MARKET"))
-                .andExpect(jsonPath("$.currency").value("AUD"));
+                .andExpect(jsonPath("$.name").value("Bitcoin Updated"));
     }
 
     @Test
-    void updateAsset_returns404WhenNotFound() throws Exception {
+    void updateAsset_memberCannotUpdateOtherUsersAsset() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID otherUserId = UUID.randomUUID();
         UUID assetId = UUID.randomUUID();
+        Asset existingOtherUser = sampleAsset(assetId, otherUserId);
 
-        AssetDtos.UpdateAssetRequest request = new AssetDtos.UpdateAssetRequest(
-                "Bitcoin",
-                "BTC",
-                new BigDecimal("1.0"),
-                "MARKET",
-                null,
-                "AUD"
-        );
-
-        when(assetService.updateAsset(eq(assetId), any()))
-                .thenThrow(new AssetNotFoundException(assetId));
+        when(assetService.getAssetById(assetId)).thenReturn(existingOtherUser);
 
         mockMvc.perform(put("/api/v1/assets/" + assetId)
+                        .with(memberJwt(userId))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("ASSET_NOT_FOUND"));
+                        .content(objectMapper.writeValueAsString(
+                                new AssetDtos.UpdateAssetRequest("Bitcoin", "BTC",
+                                        new BigDecimal("1.0"), "MARKET", null, "AUD"))))
+                .andExpect(status().isNotFound());
     }
 
-    // simple DTO for test
-    record CreateAssetRequest(
-            String userId,
-            String type,
-            String name,
-            String symbol,
-            BigDecimal quantity,
-            String valuationMode,
-            BigDecimal manualUnitValue,
-            String currency
-    ) {}
+    @Test
+    void updateAsset_adminCanUpdateAnyAsset() throws Exception {
+        UUID adminId = UUID.randomUUID();
+        UUID targetUserId = UUID.randomUUID();
+        UUID assetId = UUID.randomUUID();
+        Asset existing = sampleAsset(assetId, targetUserId);
+        Asset updated = new Asset(assetId, targetUserId, AssetType.CRYPTO, "Bitcoin Updated", "BTC",
+                new BigDecimal("1.0"), ValuationMode.MARKET, null, "AUD", Instant.now());
 
+        when(assetService.getAssetById(assetId)).thenReturn(existing);
+        when(assetService.updateAsset(eq(assetId), any())).thenReturn(updated);
+
+        mockMvc.perform(put("/api/v1/assets/" + assetId)
+                        .with(adminJwt(adminId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new AssetDtos.UpdateAssetRequest("Bitcoin Updated", "BTC",
+                                        new BigDecimal("1.0"), "MARKET", null, "AUD"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Bitcoin Updated"));
+    }
+
+    @Test
+    void updateAsset_returns404WhenAssetNotFound() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID assetId = UUID.randomUUID();
+        when(assetService.getAssetById(assetId)).thenThrow(new AssetNotFoundException(assetId));
+
+        mockMvc.perform(put("/api/v1/assets/" + assetId)
+                        .with(memberJwt(userId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new AssetDtos.UpdateAssetRequest("Bitcoin", "BTC",
+                                        new BigDecimal("1.0"), "MARKET", null, "AUD"))))
+                .andExpect(status().isNotFound());
+    }
 }

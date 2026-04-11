@@ -2,13 +2,18 @@ package com.finantialhub.finantialhubapi.infrastructure.web;
 
 import com.finantialhub.finantialhubapi.application.usecases.UserService;
 import com.finantialhub.finantialhubapi.domain.model.User;
+import com.finantialhub.finantialhubapi.infrastructure.security.SecurityUtils;
 import com.finantialhub.finantialhubapi.infrastructure.web.dto.UserDtos.UpdateUserRequest;
 import com.finantialhub.finantialhubapi.infrastructure.web.dto.UserDtos.CreateUserRequest;
 import com.finantialhub.finantialhubapi.infrastructure.web.dto.UserDtos.UserResponse;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.net.URI;
 import java.util.List;
@@ -38,19 +43,32 @@ public class UserController {
         List<UserResponse> response = userService.getAllUsers().stream()
                 .map(UserResponse::from)
                 .toList();
-
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
-    public UserResponse getUser(@PathVariable UUID id) {
+    public UserResponse getUser(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID id) {
+
+        if (!SecurityUtils.isAdmin(jwt) && !id.equals(SecurityUtils.extractUserId(jwt))) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+
         User user = userService.getUser(id);
         return new UserResponse(user.getId(), user.getEmail(), user.getFullName(), user.getRole(), user.getCreatedAt());
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<UserResponse> updateUser(@PathVariable UUID id,
-                                                   @Valid @RequestBody UpdateUserRequest request) {
+    public ResponseEntity<UserResponse> updateUser(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateUserRequest request) {
+
+        if (!SecurityUtils.isAdmin(jwt) && !id.equals(SecurityUtils.extractUserId(jwt))) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+
         User updated = userService.updateUser(id, request.email(), request.fullName());
         return ResponseEntity.ok(UserResponse.from(updated));
     }
