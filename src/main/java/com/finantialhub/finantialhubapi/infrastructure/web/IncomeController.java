@@ -57,4 +57,16 @@ public class IncomeController {
                 .map(IncomeResponse::from)
                 .toList();
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteIncome(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID id) {
+
+        Income existing = incomeService.getIncomeById(id);
+        SecurityUtils.requireOwnership(jwt, existing.getUserId());
+
+        incomeService.deleteIncome(id);
+        return ResponseEntity.noContent().build();
+    }
 }
