@@ -1,6 +1,7 @@
 package com.finantialhub.finantialhubapi.application.usecases;
 
 import com.finantialhub.finantialhubapi.domain.exceptions.EmailAlreadyExistsException;
+import com.finantialhub.finantialhubapi.domain.exceptions.InvalidPasswordException;
 import com.finantialhub.finantialhubapi.domain.exceptions.UserNotFoundException;
 import com.finantialhub.finantialhubapi.domain.model.User;
 import com.finantialhub.finantialhubapi.domain.validation.UserRegistrationValidator;
@@ -70,6 +71,18 @@ public class UserService {
             throw new UserNotFoundException("User not found with id: " + id);
         }
         userRepository.deleteById(id);
+    }
+
+    @Transactional
+    public User changePassword(UUID id, String currentPassword, String newPassword, boolean isAdmin) {
+        User user = getUser(id);
+
+        if (!isAdmin && !passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            throw new InvalidPasswordException();
+        }
+
+        String newHash = passwordEncoder.encode(newPassword);
+        return userRepository.save(user.withUpdatedPassword(newHash));
     }
 
     @Transactional

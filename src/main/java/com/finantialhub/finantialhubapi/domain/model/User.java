@@ -115,6 +115,17 @@ public class User implements Persistable<UUID> {
         );
     }
 
+    public User withUpdatedPassword(String newPasswordHash) {
+        return new User(
+                this.id,
+                this.email,
+                this.fullName,
+                newPasswordHash,
+                this.createdAt,
+                this.role
+        );
+    }
+
     public User promoteToAdmin() {
         if (this.role == Role.ADMIN) {
             return this; // already admin, no change

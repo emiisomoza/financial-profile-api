@@ -76,6 +76,11 @@ public class GlobalExceptionHandler {
         return error("INVALID_CREDENTIALS", ex.getMessage());
     }
 
+    @ExceptionHandler(InvalidPasswordException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidPassword(InvalidPasswordException ex) {
+        return ResponseEntity.status(422).body(error("INVALID_PASSWORD", ex.getMessage()));
+    }
+
     @ExceptionHandler(AssetNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorResponse handleAssetNotFound(AssetNotFoundException ex) {
