@@ -3,6 +3,7 @@ package com.finantialhub.finantialhubapi.application.usecases;
 import com.finantialhub.finantialhubapi.domain.exceptions.UserNotFoundException;
 import com.finantialhub.finantialhubapi.domain.model.Role;
 import com.finantialhub.finantialhubapi.domain.model.User;
+import com.finantialhub.finantialhubapi.domain.validation.PasswordStrengthValidator;
 import com.finantialhub.finantialhubapi.infrastructure.persistence.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,9 +25,11 @@ class UserServicePromoteUserTest {
     @Mock
     private UserRepository userRepository;
 
-    // passwordEncoder and validators are not used for this test
     @Mock
     private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
+    @Mock
+    private PasswordStrengthValidator passwordStrengthValidator;
 
     @Test
     void promoteUser_shouldPromoteMemberToAdmin() {
@@ -48,7 +51,7 @@ class UserServicePromoteUserTest {
         when(userRepository.save(savedCaptor.capture()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        UserService service = new UserService(userRepository, java.util.List.of(), passwordEncoder);
+        UserService service = new UserService(userRepository, java.util.List.of(), passwordEncoder, passwordStrengthValidator);
 
         User result = service.promoteUserToAdmin(id);
 
@@ -80,7 +83,7 @@ class UserServicePromoteUserTest {
         when(userRepository.save(savedCaptor.capture()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        UserService service = new UserService(userRepository, java.util.List.of(), passwordEncoder);
+        UserService service = new UserService(userRepository, java.util.List.of(), passwordEncoder, passwordStrengthValidator);
 
         User result = service.promoteUserToAdmin(id);
 
@@ -96,7 +99,7 @@ class UserServicePromoteUserTest {
 
         when(userRepository.findById(id)).thenReturn(Optional.empty());
 
-        UserService service = new UserService(userRepository, java.util.List.of(), passwordEncoder);
+        UserService service = new UserService(userRepository, java.util.List.of(), passwordEncoder, passwordStrengthValidator);
 
         assertThrows(UserNotFoundException.class,
                 () -> service.promoteUserToAdmin(id));

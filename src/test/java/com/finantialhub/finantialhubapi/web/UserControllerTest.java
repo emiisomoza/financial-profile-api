@@ -34,6 +34,7 @@ import java.util.UUID;
 import com.finantialhub.finantialhubapi.domain.exceptions.UserNotFoundException;
 
 import com.finantialhub.finantialhubapi.domain.exceptions.InvalidPasswordException;
+import com.finantialhub.finantialhubapi.domain.exceptions.WeakPasswordException;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -366,6 +367,23 @@ class UserControllerTest {
                             """))
                 .andExpect(status().is(422))
                 .andExpect(jsonPath("$.code").value("INVALID_PASSWORD"));
+    }
+
+    @Test
+    void changePassword_weakNewPassword_returns400() throws Exception {
+        UUID userId = UUID.randomUUID();
+        when(userService.changePassword(eq(userId), anyString(), anyString(), anyBoolean()))
+                .thenThrow(new WeakPasswordException(
+                        "Password must be at least 8 characters long and include at least 1 uppercase letter and 1 digit"));
+
+        mockMvc.perform(patch("/api/v1/users/" + userId + "/password")
+                        .with(memberJwt(userId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"currentPassword":"oldPass1!","newPassword":"weakpass"}
+                            """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("WEAK_PASSWORD"));
     }
 
     @Test

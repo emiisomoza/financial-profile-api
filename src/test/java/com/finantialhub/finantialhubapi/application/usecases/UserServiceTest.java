@@ -4,6 +4,7 @@ import com.finantialhub.finantialhubapi.domain.exceptions.EmailAlreadyExistsExce
 import com.finantialhub.finantialhubapi.domain.exceptions.UserNotFoundException;
 import com.finantialhub.finantialhubapi.domain.model.Role;
 import com.finantialhub.finantialhubapi.domain.model.User;
+import com.finantialhub.finantialhubapi.domain.validation.PasswordStrengthValidator;
 import com.finantialhub.finantialhubapi.domain.validation.UserRegistrationValidator;
 import com.finantialhub.finantialhubapi.infrastructure.persistence.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -32,7 +33,10 @@ class UserServiceTest {
     private PasswordEncoder passwordEncoder;
 
     @Mock
-    private UserRegistrationValidator validator1; // example, we don't care which
+    private UserRegistrationValidator validator1;
+
+    @Mock
+    private PasswordStrengthValidator passwordStrengthValidator;
 
     @Test
     void registerUser_shouldHashPasswordAndSaveUser() {
@@ -51,8 +55,9 @@ class UserServiceTest {
 
         UserService userService = new UserService(
                 userRepository,
-                List.of(validator1), // we only verify it's called
-                passwordEncoder
+                List.of(validator1),
+                passwordEncoder,
+                passwordStrengthValidator
         );
 
         User result = userService.registerUser(email, fullName, rawPassword);
@@ -93,7 +98,7 @@ class UserServiceTest {
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         when(userRepository.save(userCaptor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        UserService service = new UserService(userRepository, List.of(validator1), passwordEncoder);
+        UserService service = new UserService(userRepository, List.of(validator1), passwordEncoder, passwordStrengthValidator);
 
         User result = service.updateUser(id, "new@example.com", "New Name");
 
@@ -111,7 +116,7 @@ class UserServiceTest {
 
         when(userRepository.findById(id)).thenReturn(Optional.empty());
 
-        UserService service = new UserService(userRepository, List.of(validator1), passwordEncoder);
+        UserService service = new UserService(userRepository, List.of(validator1), passwordEncoder, passwordStrengthValidator);
 
         assertThrows(UserNotFoundException.class,
                 () -> service.updateUser(id, "new@example.com", "New Name"));
@@ -133,7 +138,7 @@ class UserServiceTest {
         when(userRepository.findById(id)).thenReturn(Optional.of(existing));
         when(userRepository.existsByEmail("taken@example.com")).thenReturn(true);
 
-        UserService service = new UserService(userRepository, List.of(validator1), passwordEncoder);
+        UserService service = new UserService(userRepository, List.of(validator1), passwordEncoder, passwordStrengthValidator);
 
         assertThrows(EmailAlreadyExistsException.class,
                 () -> service.updateUser(id, "taken@example.com", "New Name"));
