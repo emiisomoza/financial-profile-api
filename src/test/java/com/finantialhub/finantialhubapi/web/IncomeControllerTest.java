@@ -29,10 +29,13 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+import com.finantialhub.finantialhubapi.domain.exceptions.IncomeNotFoundException;
+
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(controllers = IncomeController.class)
@@ -163,5 +166,59 @@ class IncomeControllerTest {
                         .with(adminJwt(adminId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].userId").value(targetUserId.toString()));
+    }
+
+    // ── DELETE /api/v1/incomes/{id} ───────────────────────────────────────────
+
+    @Test
+    void deleteIncome_memberCanDeleteOwnIncome() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID incomeId = UUID.randomUUID();
+        when(incomeService.getIncomeById(incomeId)).thenReturn(sampleIncome(userId));
+        doNothing().when(incomeService).deleteIncome(incomeId);
+
+        mockMvc.perform(delete("/api/v1/incomes/" + incomeId)
+                        .with(memberJwt(userId)))
+                .andExpect(status().isNoContent());
+
+        verify(incomeService).deleteIncome(incomeId);
+    }
+
+    @Test
+    void deleteIncome_memberCannotDeleteOtherUsersIncome() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID otherUserId = UUID.randomUUID();
+        UUID incomeId = UUID.randomUUID();
+        when(incomeService.getIncomeById(incomeId)).thenReturn(sampleIncome(otherUserId));
+
+        mockMvc.perform(delete("/api/v1/incomes/" + incomeId)
+                        .with(memberJwt(userId)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void deleteIncome_adminCanDeleteAnyIncome() throws Exception {
+        UUID adminId = UUID.randomUUID();
+        UUID targetUserId = UUID.randomUUID();
+        UUID incomeId = UUID.randomUUID();
+        when(incomeService.getIncomeById(incomeId)).thenReturn(sampleIncome(targetUserId));
+        doNothing().when(incomeService).deleteIncome(incomeId);
+
+        mockMvc.perform(delete("/api/v1/incomes/" + incomeId)
+                        .with(adminJwt(adminId)))
+                .andExpect(status().isNoContent());
+
+        verify(incomeService).deleteIncome(incomeId);
+    }
+
+    @Test
+    void deleteIncome_returns404WhenNotFound() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID incomeId = UUID.randomUUID();
+        when(incomeService.getIncomeById(incomeId)).thenThrow(new IncomeNotFoundException(incomeId));
+
+        mockMvc.perform(delete("/api/v1/incomes/" + incomeId)
+                        .with(memberJwt(userId)))
+                .andExpect(status().isNotFound());
     }
 }

@@ -58,4 +58,16 @@ public class ExpenseController {
                 .map(ExpenseResponse::from)
                 .toList();
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteExpense(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID id) {
+
+        Expense existing = expenseService.getExpenseById(id);
+        SecurityUtils.requireOwnership(jwt, existing.getUserId());
+
+        expenseService.deleteExpense(id);
+        return ResponseEntity.noContent().build();
+    }
 }

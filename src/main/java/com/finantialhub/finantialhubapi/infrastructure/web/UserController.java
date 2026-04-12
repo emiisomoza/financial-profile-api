@@ -68,6 +68,13 @@ public class UserController {
     }
 
     @PreAuthorize("hasAuthority('ADMIN')")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable UUID id) {
+        userService.deleteUser(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PreAuthorize("hasAuthority('ADMIN')")
     @PostMapping("/{id}/promote")
     public ResponseEntity<UserResponse> promoteUserToAdmin(@PathVariable UUID id) {
         User promoted = userService.promoteUserToAdmin(id);

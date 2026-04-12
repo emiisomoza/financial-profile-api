@@ -30,10 +30,13 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+import com.finantialhub.finantialhubapi.domain.exceptions.ExpenseNotFoundException;
+
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(controllers = ExpenseController.class)
@@ -159,5 +162,59 @@ class ExpenseControllerTest {
                         .with(adminJwt(adminId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].userId").value(targetUserId.toString()));
+    }
+
+    // ── DELETE /api/v1/expenses/{id} ─────────────────────────────────────────
+
+    @Test
+    void deleteExpense_memberCanDeleteOwnExpense() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID expenseId = UUID.randomUUID();
+        when(expenseService.getExpenseById(expenseId)).thenReturn(sampleExpense(userId));
+        doNothing().when(expenseService).deleteExpense(expenseId);
+
+        mockMvc.perform(delete("/api/v1/expenses/" + expenseId)
+                        .with(memberJwt(userId)))
+                .andExpect(status().isNoContent());
+
+        verify(expenseService).deleteExpense(expenseId);
+    }
+
+    @Test
+    void deleteExpense_memberCannotDeleteOtherUsersExpense() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID otherUserId = UUID.randomUUID();
+        UUID expenseId = UUID.randomUUID();
+        when(expenseService.getExpenseById(expenseId)).thenReturn(sampleExpense(otherUserId));
+
+        mockMvc.perform(delete("/api/v1/expenses/" + expenseId)
+                        .with(memberJwt(userId)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void deleteExpense_adminCanDeleteAnyExpense() throws Exception {
+        UUID adminId = UUID.randomUUID();
+        UUID targetUserId = UUID.randomUUID();
+        UUID expenseId = UUID.randomUUID();
+        when(expenseService.getExpenseById(expenseId)).thenReturn(sampleExpense(targetUserId));
+        doNothing().when(expenseService).deleteExpense(expenseId);
+
+        mockMvc.perform(delete("/api/v1/expenses/" + expenseId)
+                        .with(adminJwt(adminId)))
+                .andExpect(status().isNoContent());
+
+        verify(expenseService).deleteExpense(expenseId);
+    }
+
+    @Test
+    void deleteExpense_returns404WhenNotFound() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID expenseId = UUID.randomUUID();
+        when(expenseService.getExpenseById(expenseId)).thenThrow(new ExpenseNotFoundException(expenseId));
+
+        mockMvc.perform(delete("/api/v1/expenses/" + expenseId)
+                        .with(memberJwt(userId)))
+                .andExpect(status().isNotFound());
     }
 }

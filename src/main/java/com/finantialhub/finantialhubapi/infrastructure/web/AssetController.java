@@ -82,4 +82,16 @@ public class AssetController {
         Asset updated = assetService.updateAsset(id, cmd);
         return ResponseEntity.ok(AssetResponse.from(updated));
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteAsset(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID id) {
+
+        Asset existing = assetService.getAssetById(id);
+        SecurityUtils.requireOwnership(jwt, existing.getUserId());
+
+        assetService.deleteAsset(id);
+        return ResponseEntity.noContent().build();
+    }
 }

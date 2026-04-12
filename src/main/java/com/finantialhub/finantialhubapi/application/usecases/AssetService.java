@@ -77,6 +77,13 @@ public class AssetService {
         return assetRepository.save(updated);
     }
 
+    public void deleteAsset(UUID assetId) {
+        if (!assetRepository.existsById(assetId)) {
+            throw new AssetNotFoundException(assetId);
+        }
+        assetRepository.deleteById(assetId);
+    }
+
     public record UpdateAssetCommand(
             String name,
             String symbol,

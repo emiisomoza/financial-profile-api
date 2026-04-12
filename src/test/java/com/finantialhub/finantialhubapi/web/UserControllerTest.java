@@ -31,12 +31,15 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+import com.finantialhub.finantialhubapi.domain.exceptions.UserNotFoundException;
+
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(controllers = UserController.class)
@@ -264,6 +267,33 @@ class UserControllerTest {
                         .with(memberJwt(userId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound());
+    }
+
+    // ── DELETE /api/v1/users/{id} ─────────────────────────────────────────────
+
+    @Test
+    void deleteUser_adminCanDeleteUser() throws Exception {
+        UUID adminId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        doNothing().when(userService).deleteUser(userId);
+
+        mockMvc.perform(delete("/api/v1/users/" + userId)
+                        .with(adminJwt(adminId)))
+                .andExpect(status().isNoContent());
+
+        verify(userService).deleteUser(userId);
+    }
+
+    @Test
+    void deleteUser_returns404WhenUserNotFound() throws Exception {
+        UUID adminId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        doThrow(new UserNotFoundException("User not found with id: " + userId))
+                .when(userService).deleteUser(userId);
+
+        mockMvc.perform(delete("/api/v1/users/" + userId)
+                        .with(adminJwt(adminId)))
                 .andExpect(status().isNotFound());
     }
 

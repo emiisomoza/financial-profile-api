@@ -1,5 +1,6 @@
 package com.finantialhub.finantialhubapi.application.usecases;
 
+import com.finantialhub.finantialhubapi.domain.exceptions.IncomeNotFoundException;
 import com.finantialhub.finantialhubapi.domain.model.Income;
 import com.finantialhub.finantialhubapi.domain.model.IncomeFrequency;
 import com.finantialhub.finantialhubapi.infrastructure.persistence.IncomeRepository;
@@ -32,8 +33,20 @@ public class IncomeService {
         return incomeRepository.save(income);
     }
 
+    public Income getIncomeById(UUID incomeId) {
+        return incomeRepository.findById(incomeId)
+                .orElseThrow(() -> new IncomeNotFoundException(incomeId));
+    }
+
     public List<Income> getIncomesForUser(UUID userId) {
         return incomeRepository.findByUserId(userId);
+    }
+
+    public void deleteIncome(UUID incomeId) {
+        if (!incomeRepository.existsById(incomeId)) {
+            throw new IncomeNotFoundException(incomeId);
+        }
+        incomeRepository.deleteById(incomeId);
     }
 
     public record CreateIncomeCommand(

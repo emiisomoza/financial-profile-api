@@ -33,6 +33,8 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -249,6 +251,60 @@ class AssetControllerTest {
                         .content(objectMapper.writeValueAsString(
                                 new AssetDtos.UpdateAssetRequest("Bitcoin", "BTC",
                                         new BigDecimal("1.0"), "MARKET", null, "AUD"))))
+                .andExpect(status().isNotFound());
+    }
+
+    // ── DELETE /api/v1/assets/{id} ───────────────────────────────────────────
+
+    @Test
+    void deleteAsset_memberCanDeleteOwnAsset() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID assetId = UUID.randomUUID();
+        when(assetService.getAssetById(assetId)).thenReturn(sampleAsset(assetId, userId));
+        doNothing().when(assetService).deleteAsset(assetId);
+
+        mockMvc.perform(delete("/api/v1/assets/" + assetId)
+                        .with(memberJwt(userId)))
+                .andExpect(status().isNoContent());
+
+        verify(assetService).deleteAsset(assetId);
+    }
+
+    @Test
+    void deleteAsset_memberCannotDeleteOtherUsersAsset() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID otherUserId = UUID.randomUUID();
+        UUID assetId = UUID.randomUUID();
+        when(assetService.getAssetById(assetId)).thenReturn(sampleAsset(assetId, otherUserId));
+
+        mockMvc.perform(delete("/api/v1/assets/" + assetId)
+                        .with(memberJwt(userId)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void deleteAsset_adminCanDeleteAnyAsset() throws Exception {
+        UUID adminId = UUID.randomUUID();
+        UUID targetUserId = UUID.randomUUID();
+        UUID assetId = UUID.randomUUID();
+        when(assetService.getAssetById(assetId)).thenReturn(sampleAsset(assetId, targetUserId));
+        doNothing().when(assetService).deleteAsset(assetId);
+
+        mockMvc.perform(delete("/api/v1/assets/" + assetId)
+                        .with(adminJwt(adminId)))
+                .andExpect(status().isNoContent());
+
+        verify(assetService).deleteAsset(assetId);
+    }
+
+    @Test
+    void deleteAsset_returns404WhenAssetNotFound() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID assetId = UUID.randomUUID();
+        when(assetService.getAssetById(assetId)).thenThrow(new AssetNotFoundException(assetId));
+
+        mockMvc.perform(delete("/api/v1/assets/" + assetId)
+                        .with(memberJwt(userId)))
                 .andExpect(status().isNotFound());
     }
 }

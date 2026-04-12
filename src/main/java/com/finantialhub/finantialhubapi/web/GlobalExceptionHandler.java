@@ -88,6 +88,18 @@ public class GlobalExceptionHandler {
         return error("SUBSCRIPTION_NOT_FOUND", ex.getMessage());
     }
 
+    @ExceptionHandler(ExpenseNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorResponse handleExpenseNotFound(ExpenseNotFoundException ex) {
+        return error("EXPENSE_NOT_FOUND", ex.getMessage());
+    }
+
+    @ExceptionHandler(IncomeNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorResponse handleIncomeNotFound(IncomeNotFoundException ex) {
+        return error("INCOME_NOT_FOUND", ex.getMessage());
+    }
+
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<ErrorResponse> handleResponseStatus(ResponseStatusException ex) {
         return ResponseEntity.status(ex.getStatusCode()).body(

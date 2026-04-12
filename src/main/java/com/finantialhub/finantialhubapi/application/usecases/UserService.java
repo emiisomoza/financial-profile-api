@@ -65,6 +65,14 @@ public class UserService {
     }
 
     @Transactional
+    public void deleteUser(UUID id) {
+        if (!userRepository.existsById(id)) {
+            throw new UserNotFoundException("User not found with id: " + id);
+        }
+        userRepository.deleteById(id);
+    }
+
+    @Transactional
     public User promoteUserToAdmin(UUID userId) {
         User user = getUser(userId); // already throws UserNotFoundException if missing
 
