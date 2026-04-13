@@ -37,6 +37,15 @@ public class UserDtos {
             String fullName
     ) {}
 
+    public record ChangePasswordRequest(
+
+            String currentPassword,
+
+            @NotBlank(message = "New password is required")
+            @Size(min = 8, max = 128, message = "New password must be at least 8 characters long")
+            String newPassword
+    ) {}
+
     public record LoginRequest(
             @NotBlank(message = "Email is required")
             @Email(message = "Invalid email format")

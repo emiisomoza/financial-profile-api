@@ -3,6 +3,7 @@ package com.finantialhub.finantialhubapi.infrastructure.web;
 import com.finantialhub.finantialhubapi.application.usecases.UserService;
 import com.finantialhub.finantialhubapi.domain.model.User;
 import com.finantialhub.finantialhubapi.infrastructure.security.SecurityUtils;
+import com.finantialhub.finantialhubapi.infrastructure.web.dto.UserDtos.ChangePasswordRequest;
 import com.finantialhub.finantialhubapi.infrastructure.web.dto.UserDtos.UpdateUserRequest;
 import com.finantialhub.finantialhubapi.infrastructure.web.dto.UserDtos.CreateUserRequest;
 import com.finantialhub.finantialhubapi.infrastructure.web.dto.UserDtos.UserResponse;
@@ -65,6 +66,18 @@ public class UserController {
 
         User updated = userService.updateUser(id, request.email(), request.fullName());
         return ResponseEntity.ok(UserResponse.from(updated));
+    }
+
+    @PatchMapping("/{id}/password")
+    public ResponseEntity<Void> changePassword(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID id,
+            @Valid @RequestBody ChangePasswordRequest request) {
+
+        SecurityUtils.requireOwnership(jwt, id);
+
+        userService.changePassword(id, request.currentPassword(), request.newPassword(), SecurityUtils.isAdmin(jwt));
+        return ResponseEntity.noContent().build();
     }
 
     @PreAuthorize("hasAuthority('ADMIN')")

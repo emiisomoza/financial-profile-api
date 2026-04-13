@@ -33,6 +33,11 @@ import java.util.UUID;
 
 import com.finantialhub.finantialhubapi.domain.exceptions.UserNotFoundException;
 
+import com.finantialhub.finantialhubapi.domain.exceptions.InvalidPasswordException;
+import com.finantialhub.finantialhubapi.domain.exceptions.WeakPasswordException;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
@@ -295,6 +300,104 @@ class UserControllerTest {
         mockMvc.perform(delete("/api/v1/users/" + userId)
                         .with(adminJwt(adminId)))
                 .andExpect(status().isNotFound());
+    }
+
+    // ── PATCH /api/v1/users/{id}/password ────────────────────────────────────
+
+    @Test
+    void changePassword_memberCanChangeOwnPassword() throws Exception {
+        UUID userId = UUID.randomUUID();
+        User user = new User(userId, "test@example.com", "John Doe", "newhash", Instant.now(), Role.MEMBER);
+        when(userService.changePassword(eq(userId), anyString(), anyString(), anyBoolean())).thenReturn(user);
+
+        mockMvc.perform(patch("/api/v1/users/" + userId + "/password")
+                        .with(memberJwt(userId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"currentPassword":"oldPass1!","newPassword":"NewPass1!"}
+                            """))
+                .andExpect(status().isNoContent());
+
+        verify(userService).changePassword(userId, "oldPass1!", "NewPass1!", false);
+    }
+
+    @Test
+    void changePassword_adminCanChangePasswordWithoutCurrentPassword() throws Exception {
+        UUID adminId = UUID.randomUUID();
+        UUID targetId = UUID.randomUUID();
+        User user = new User(targetId, "test@example.com", "John Doe", "newhash", Instant.now(), Role.MEMBER);
+        when(userService.changePassword(eq(targetId), any(), anyString(), anyBoolean())).thenReturn(user);
+
+        mockMvc.perform(patch("/api/v1/users/" + targetId + "/password")
+                        .with(adminJwt(adminId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"newPassword":"NewPass1!"}
+                            """))
+                .andExpect(status().isNoContent());
+
+        verify(userService).changePassword(targetId, null, "NewPass1!", true);
+    }
+
+    @Test
+    void changePassword_memberCannotChangeOtherUsersPassword() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID otherId = UUID.randomUUID();
+
+        mockMvc.perform(patch("/api/v1/users/" + otherId + "/password")
+                        .with(memberJwt(userId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"currentPassword":"oldPass1!","newPassword":"NewPass1!"}
+                            """))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void changePassword_wrongCurrentPassword_returns422() throws Exception {
+        UUID userId = UUID.randomUUID();
+        when(userService.changePassword(eq(userId), anyString(), anyString(), anyBoolean()))
+                .thenThrow(new InvalidPasswordException());
+
+        mockMvc.perform(patch("/api/v1/users/" + userId + "/password")
+                        .with(memberJwt(userId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"currentPassword":"wrongPass1!","newPassword":"NewPass1!"}
+                            """))
+                .andExpect(status().is(422))
+                .andExpect(jsonPath("$.code").value("INVALID_PASSWORD"));
+    }
+
+    @Test
+    void changePassword_weakNewPassword_returns400() throws Exception {
+        UUID userId = UUID.randomUUID();
+        when(userService.changePassword(eq(userId), anyString(), anyString(), anyBoolean()))
+                .thenThrow(new WeakPasswordException(
+                        "Password must be at least 8 characters long and include at least 1 uppercase letter and 1 digit"));
+
+        mockMvc.perform(patch("/api/v1/users/" + userId + "/password")
+                        .with(memberJwt(userId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"currentPassword":"oldPass1!","newPassword":"weakpass"}
+                            """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("WEAK_PASSWORD"));
+    }
+
+    @Test
+    void changePassword_missingNewPassword_returns400() throws Exception {
+        UUID userId = UUID.randomUUID();
+
+        mockMvc.perform(patch("/api/v1/users/" + userId + "/password")
+                        .with(memberJwt(userId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"currentPassword":"oldPass1!"}
+                            """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
     }
 
     // test-only record to build the JSON request body
