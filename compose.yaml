@@ -18,6 +18,8 @@ services:
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
 
   financial-summary-worker:
+    # TODO: replace with GitHub URL when deploying without sibling repo
+    # https://github.com/emiisomoza/financial-summary-worker
     build: ../financial-summary-worker
     environment:
       - RABBITMQ_HOST=rabbitmq
