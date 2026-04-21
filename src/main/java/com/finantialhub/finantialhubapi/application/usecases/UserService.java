@@ -1,8 +1,10 @@
 package com.finantialhub.finantialhubapi.application.usecases;
 
 import com.finantialhub.finantialhubapi.domain.exceptions.EmailAlreadyExistsException;
+import com.finantialhub.finantialhubapi.domain.exceptions.InvalidPasswordException;
 import com.finantialhub.finantialhubapi.domain.exceptions.UserNotFoundException;
 import com.finantialhub.finantialhubapi.domain.model.User;
+import com.finantialhub.finantialhubapi.domain.validation.PasswordStrengthValidator;
 import com.finantialhub.finantialhubapi.domain.validation.UserRegistrationValidator;
 import com.finantialhub.finantialhubapi.infrastructure.persistence.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -20,15 +22,18 @@ public class UserService {
     private final UserRepository userRepository;
     private final List<UserRegistrationValidator> validators;
     private final PasswordEncoder passwordEncoder;
+    private final PasswordStrengthValidator passwordStrengthValidator;
 
     public UserService(
         UserRepository userRepository,
         List<UserRegistrationValidator> validators,
-        PasswordEncoder passwordEncoder
+        PasswordEncoder passwordEncoder,
+        PasswordStrengthValidator passwordStrengthValidator
     ) {
         this.userRepository = userRepository;
         this.validators = validators;
         this.passwordEncoder = passwordEncoder;
+        this.passwordStrengthValidator = passwordStrengthValidator;
     }
 
     @Transactional
@@ -70,6 +75,20 @@ public class UserService {
             throw new UserNotFoundException("User not found with id: " + id);
         }
         userRepository.deleteById(id);
+    }
+
+    @Transactional
+    public User changePassword(UUID id, String currentPassword, String newPassword, boolean isAdmin) {
+        User user = getUser(id);
+
+        if (!isAdmin && !passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            throw new InvalidPasswordException();
+        }
+
+        passwordStrengthValidator.validatePassword(newPassword);
+
+        String newHash = passwordEncoder.encode(newPassword);
+        return userRepository.save(user.withUpdatedPassword(newHash));
     }
 
     @Transactional
