@@ -33,6 +33,7 @@ import java.util.UUID;
 import com.finantialhub.finantialhubapi.domain.exceptions.ExpenseNotFoundException;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -162,6 +163,97 @@ class ExpenseControllerTest {
                         .with(adminJwt(adminId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].userId").value(targetUserId.toString()));
+    }
+
+    // ── PUT /api/v1/expenses/{id} ─────────────────────────────────────────────
+
+    @Test
+    void updateExpense_memberCanUpdateOwnExpense() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID expenseId = UUID.randomUUID();
+        Expense updated = new Expense(
+                expenseId, userId,
+                ExpenseCategory.GROCERIES, "Weekly groceries",
+                ExpenseFrequency.WEEKLY,
+                new BigDecimal("300.00"), "AUD",
+                LocalDate.parse("2026-02-01"), null,
+                Instant.now()
+        );
+        when(expenseService.getExpenseById(expenseId)).thenReturn(sampleExpense(userId));
+        when(expenseService.updateExpense(eq(expenseId), any())).thenReturn(updated);
+
+        mockMvc.perform(put("/api/v1/expenses/" + expenseId)
+                        .with(memberJwt(userId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"category":"GROCERIES","description":"Weekly groceries","frequency":"WEEKLY",
+                             "amount":300.00,"currency":"AUD","startsAt":"2026-02-01"}
+                            """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.category").value("GROCERIES"))
+                .andExpect(jsonPath("$.frequency").value("WEEKLY"))
+                .andExpect(jsonPath("$.amount").value(300.00));
+    }
+
+    @Test
+    void updateExpense_memberCannotUpdateOtherUsersExpense() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID otherUserId = UUID.randomUUID();
+        UUID expenseId = UUID.randomUUID();
+        when(expenseService.getExpenseById(expenseId)).thenReturn(sampleExpense(otherUserId));
+
+        mockMvc.perform(put("/api/v1/expenses/" + expenseId)
+                        .with(memberJwt(userId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"category":"RENT","description":"Rent payment","frequency":"MONTHLY",
+                             "amount":2400.00,"currency":"AUD","startsAt":"2026-01-01"}
+                            """))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void updateExpense_adminCanUpdateAnyExpense() throws Exception {
+        UUID adminId = UUID.randomUUID();
+        UUID targetUserId = UUID.randomUUID();
+        UUID expenseId = UUID.randomUUID();
+        Expense updated = new Expense(
+                expenseId, targetUserId,
+                ExpenseCategory.UTILITIES, "Electricity bill",
+                ExpenseFrequency.MONTHLY,
+                new BigDecimal("150.00"), "AUD",
+                LocalDate.parse("2026-03-01"), null,
+                Instant.now()
+        );
+        when(expenseService.getExpenseById(expenseId)).thenReturn(sampleExpense(targetUserId));
+        when(expenseService.updateExpense(eq(expenseId), any())).thenReturn(updated);
+
+        mockMvc.perform(put("/api/v1/expenses/" + expenseId)
+                        .with(adminJwt(adminId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"category":"UTILITIES","description":"Electricity bill","frequency":"MONTHLY",
+                             "amount":150.00,"currency":"AUD","startsAt":"2026-03-01"}
+                            """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.category").value("UTILITIES"))
+                .andExpect(jsonPath("$.description").value("Electricity bill"));
+    }
+
+    @Test
+    void updateExpense_returns404WhenExpenseNotFound() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID expenseId = UUID.randomUUID();
+        when(expenseService.getExpenseById(expenseId)).thenThrow(new ExpenseNotFoundException(expenseId));
+
+        mockMvc.perform(put("/api/v1/expenses/" + expenseId)
+                        .with(memberJwt(userId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"category":"RENT","description":"Rent payment","frequency":"MONTHLY",
+                             "amount":2400.00,"currency":"AUD","startsAt":"2026-01-01"}
+                            """))
+                .andExpect(status().isNotFound());
     }
 
     // ── DELETE /api/v1/expenses/{id} ─────────────────────────────────────────

@@ -32,6 +32,7 @@ import java.util.UUID;
 import com.finantialhub.finantialhubapi.domain.exceptions.IncomeNotFoundException;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -166,6 +167,94 @@ class IncomeControllerTest {
                         .with(adminJwt(adminId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].userId").value(targetUserId.toString()));
+    }
+
+    // ── PUT /api/v1/incomes/{id} ──────────────────────────────────────────────
+
+    @Test
+    void updateIncome_memberCanUpdateOwnIncome() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID incomeId = UUID.randomUUID();
+        Income updated = new Income(
+                incomeId, userId,
+                "Freelance", IncomeFrequency.FORTNIGHTLY,
+                new BigDecimal("10000.00"), "USD",
+                LocalDate.parse("2026-02-01"), null,
+                Instant.now()
+        );
+        when(incomeService.getIncomeById(incomeId)).thenReturn(sampleIncome(userId));
+        when(incomeService.updateIncome(eq(incomeId), any())).thenReturn(updated);
+
+        mockMvc.perform(put("/api/v1/incomes/" + incomeId)
+                        .with(memberJwt(userId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"source":"Freelance","frequency":"FORTNIGHTLY",
+                             "amount":10000.00,"currency":"USD","startsAt":"2026-02-01"}
+                            """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.source").value("Freelance"))
+                .andExpect(jsonPath("$.frequency").value("FORTNIGHTLY"))
+                .andExpect(jsonPath("$.amount").value(10000.00));
+    }
+
+    @Test
+    void updateIncome_memberCannotUpdateOtherUsersIncome() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID otherUserId = UUID.randomUUID();
+        UUID incomeId = UUID.randomUUID();
+        when(incomeService.getIncomeById(incomeId)).thenReturn(sampleIncome(otherUserId));
+
+        mockMvc.perform(put("/api/v1/incomes/" + incomeId)
+                        .with(memberJwt(userId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"source":"Freelance","frequency":"MONTHLY",
+                             "amount":5000.00,"currency":"AUD","startsAt":"2026-01-01"}
+                            """))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void updateIncome_adminCanUpdateAnyIncome() throws Exception {
+        UUID adminId = UUID.randomUUID();
+        UUID targetUserId = UUID.randomUUID();
+        UUID incomeId = UUID.randomUUID();
+        Income updated = new Income(
+                incomeId, targetUserId,
+                "Consulting", IncomeFrequency.MONTHLY,
+                new BigDecimal("12000.00"), "USD",
+                LocalDate.parse("2026-03-01"), null,
+                Instant.now()
+        );
+        when(incomeService.getIncomeById(incomeId)).thenReturn(sampleIncome(targetUserId));
+        when(incomeService.updateIncome(eq(incomeId), any())).thenReturn(updated);
+
+        mockMvc.perform(put("/api/v1/incomes/" + incomeId)
+                        .with(adminJwt(adminId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"source":"Consulting","frequency":"MONTHLY",
+                             "amount":12000.00,"currency":"USD","startsAt":"2026-03-01"}
+                            """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.source").value("Consulting"));
+    }
+
+    @Test
+    void updateIncome_returns404WhenIncomeNotFound() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID incomeId = UUID.randomUUID();
+        when(incomeService.getIncomeById(incomeId)).thenThrow(new IncomeNotFoundException(incomeId));
+
+        mockMvc.perform(put("/api/v1/incomes/" + incomeId)
+                        .with(memberJwt(userId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {"source":"Freelance","frequency":"MONTHLY",
+                             "amount":5000.00,"currency":"AUD","startsAt":"2026-01-01"}
+                            """))
+                .andExpect(status().isNotFound());
     }
 
     // ── DELETE /api/v1/incomes/{id} ───────────────────────────────────────────
