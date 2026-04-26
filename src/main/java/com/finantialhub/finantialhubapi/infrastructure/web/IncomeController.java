@@ -58,6 +58,28 @@ public class IncomeController {
                 .toList();
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<IncomeResponse> updateIncome(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID id,
+            @RequestBody UpdateIncomeRequest request) {
+
+        Income existing = incomeService.getIncomeById(id);
+        SecurityUtils.requireOwnership(jwt, existing.getUserId());
+
+        IncomeService.UpdateIncomeCommand cmd = new IncomeService.UpdateIncomeCommand(
+                request.source(),
+                request.frequency(),
+                request.amount(),
+                request.currency(),
+                request.startsAt(),
+                request.endsAt()
+        );
+
+        Income updated = incomeService.updateIncome(id, cmd);
+        return ResponseEntity.ok(IncomeResponse.from(updated));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteIncome(
             @AuthenticationPrincipal Jwt jwt,

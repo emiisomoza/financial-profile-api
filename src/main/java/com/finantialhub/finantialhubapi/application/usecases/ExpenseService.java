@@ -44,6 +44,21 @@ public class ExpenseService {
         return expenseRepository.findByUserId(userId);
     }
 
+    public Expense updateExpense(UUID expenseId, UpdateExpenseCommand cmd) {
+        Expense existing = expenseRepository.findById(expenseId)
+                .orElseThrow(() -> new ExpenseNotFoundException(expenseId));
+        Expense updated = existing.update(
+                ExpenseCategory.valueOf(cmd.category()),
+                cmd.description(),
+                cmd.frequency(),
+                cmd.amount(),
+                cmd.currency(),
+                cmd.startsAt(),
+                cmd.endsAt()
+        );
+        return expenseRepository.save(updated);
+    }
+
     public void deleteExpense(UUID expenseId) {
         if (!expenseRepository.existsById(expenseId)) {
             throw new ExpenseNotFoundException(expenseId);
@@ -53,6 +68,16 @@ public class ExpenseService {
 
     public record CreateExpenseCommand(
             UUID userId,
+            String category,
+            String description,
+            ExpenseFrequency frequency,
+            BigDecimal amount,
+            String currency,
+            LocalDate startsAt,
+            LocalDate endsAt
+    ) {}
+
+    public record UpdateExpenseCommand(
             String category,
             String description,
             ExpenseFrequency frequency,

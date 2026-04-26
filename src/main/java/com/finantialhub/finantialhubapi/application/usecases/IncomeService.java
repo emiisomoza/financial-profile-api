@@ -42,6 +42,20 @@ public class IncomeService {
         return incomeRepository.findByUserId(userId);
     }
 
+    public Income updateIncome(UUID incomeId, UpdateIncomeCommand cmd) {
+        Income existing = incomeRepository.findById(incomeId)
+                .orElseThrow(() -> new IncomeNotFoundException(incomeId));
+        Income updated = existing.update(
+                cmd.source(),
+                IncomeFrequency.valueOf(cmd.frequency()),
+                cmd.amount(),
+                cmd.currency(),
+                cmd.startsAt(),
+                cmd.endsAt()
+        );
+        return incomeRepository.save(updated);
+    }
+
     public void deleteIncome(UUID incomeId) {
         if (!incomeRepository.existsById(incomeId)) {
             throw new IncomeNotFoundException(incomeId);
@@ -51,6 +65,15 @@ public class IncomeService {
 
     public record CreateIncomeCommand(
             UUID userId,
+            String source,
+            String frequency,
+            BigDecimal amount,
+            String currency,
+            LocalDate startsAt,
+            LocalDate endsAt
+    ) {}
+
+    public record UpdateIncomeCommand(
             String source,
             String frequency,
             BigDecimal amount,

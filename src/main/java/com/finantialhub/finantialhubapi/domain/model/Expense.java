@@ -103,6 +103,16 @@ public class Expense implements Persistable<UUID> {
         this.isNew = false;
     }
 
+    public Expense update(ExpenseCategory category,
+                          String description,
+                          ExpenseFrequency frequency,
+                          BigDecimal amount,
+                          String currency,
+                          LocalDate startsAt,
+                          LocalDate endsAt) {
+        return new Expense(this.id, this.userId, category, description, frequency, amount, currency, startsAt, endsAt, this.createdAt);
+    }
+
     @Override
     public UUID getId() {
         return id;

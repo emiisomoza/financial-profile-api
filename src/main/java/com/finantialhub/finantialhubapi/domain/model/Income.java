@@ -96,6 +96,15 @@ public class Income implements Persistable<UUID> {
         this.isNew = false;
     }
 
+    public Income update(String source,
+                         IncomeFrequency frequency,
+                         BigDecimal amount,
+                         String currency,
+                         LocalDate startsAt,
+                         LocalDate endsAt) {
+        return new Income(this.id, this.userId, source, frequency, amount, currency, startsAt, endsAt, this.createdAt);
+    }
+
     // Persistable
     @Override
     public UUID getId() {
