@@ -59,6 +59,29 @@ public class ExpenseController {
                 .toList();
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<ExpenseResponse> updateExpense(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID id,
+            @RequestBody UpdateExpenseRequest request) {
+
+        Expense existing = expenseService.getExpenseById(id);
+        SecurityUtils.requireOwnership(jwt, existing.getUserId());
+
+        ExpenseService.UpdateExpenseCommand cmd = new ExpenseService.UpdateExpenseCommand(
+                request.category(),
+                request.description(),
+                request.frequency(),
+                request.amount(),
+                request.currency(),
+                request.startsAt(),
+                request.endsAt()
+        );
+
+        Expense updated = expenseService.updateExpense(id, cmd);
+        return ResponseEntity.ok(ExpenseResponse.from(updated));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteExpense(
             @AuthenticationPrincipal Jwt jwt,

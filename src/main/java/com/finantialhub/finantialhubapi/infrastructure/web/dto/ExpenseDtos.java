@@ -19,6 +19,16 @@ public class ExpenseDtos {
             LocalDate endsAt
     ) {}
 
+    public record UpdateExpenseRequest(
+            String category,
+            String description,
+            ExpenseFrequency frequency,
+            BigDecimal amount,
+            String currency,
+            LocalDate startsAt,
+            LocalDate endsAt
+    ) {}
+
     public record ExpenseResponse(
             String id,
             String userId,

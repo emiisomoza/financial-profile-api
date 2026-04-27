@@ -17,6 +17,15 @@ public class IncomeDtos {
             LocalDate endsAt
     ) {}
 
+    public record UpdateIncomeRequest(
+            String source,
+            String frequency,
+            BigDecimal amount,
+            String currency,
+            LocalDate startsAt,
+            LocalDate endsAt
+    ) {}
+
     public record IncomeResponse(
             String id,
             String userId,
