@@ -8,11 +8,11 @@
 		<version>4.0.1</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.finantialhub</groupId>
-	<artifactId>finantialhubapi</artifactId>
+	<groupId>com.financialhub</groupId>
+	<artifactId>financialhubapi</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>finantialhubapi</name>
-	<description>Finantial Hub Main API</description>
+	<name>financialhubapi</name>
+	<description>Financial Hub Main API</description>
 	<url/>
 	<licenses>
 		<license/>
@@ -177,15 +177,15 @@
 							</rules>
 							<excludes>
 								<!-- Entry point -->
-								<exclude>com/finantialhub/finantialhubapi/Application.class</exclude>
+								<exclude>com/financialhub/financialhubapi/Application.class</exclude>
 								<!-- DTOs: pure data containers with no business logic -->
-								<exclude>com/finantialhub/finantialhubapi/infrastructure/web/dto/**</exclude>
+								<exclude>com/financialhub/financialhubapi/infrastructure/web/dto/**</exclude>
 								<!-- Spring config beans: tested indirectly via application context -->
-								<exclude>com/finantialhub/finantialhubapi/infrastructure/config/**</exclude>
+								<exclude>com/financialhub/financialhubapi/infrastructure/config/**</exclude>
 								<!-- Domain exceptions: trivial constructors -->
-								<exclude>com/finantialhub/finantialhubapi/domain/exceptions/**</exclude>
+								<exclude>com/financialhub/financialhubapi/domain/exceptions/**</exclude>
 								<!-- External pricing API client: requires live Ruby API -->
-								<exclude>com/finantialhub/finantialhubapi/infrastructure/pricing/**</exclude>
+								<exclude>com/financialhub/financialhubapi/infrastructure/pricing/**</exclude>
 							</excludes>						</configuration>
 					</execution>
 				</executions>

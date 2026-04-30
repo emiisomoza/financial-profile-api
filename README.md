@@ -1,6 +1,6 @@
 # Financial Profile API ☕
 
-![CI](https://github.com/emiisomoza/finantial-profile-api/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/emiisomoza/financial-profile-api/actions/workflows/ci.yml/badge.svg)
 ![Java](https://img.shields.io/badge/java-21-orange)
 ![Spring Boot](https://img.shields.io/badge/spring--boot-4.0-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -138,8 +138,8 @@ The Java API publishes to the `summary.notifications` queue via a `SummaryPublis
 
 ### Setup
 ```bash
-git clone https://github.com/emiisomoza/finantial-profile-api.git
-cd finantial-profile-api
+git clone https://github.com/emiisomoza/financial-profile-api.git
+cd financial-profile-api
 ```
 
 ### Start dependencies
@@ -178,7 +178,7 @@ Coverage report is generated at `target/site/jacoco/index.html`.
 ## Project structure
 
 ```
-finantial-profile-api/
+financial-profile-api/
 ├── .github/
 │   └── workflows/
 │       └── ci.yml                   # GitHub Actions CI + coverage gate
