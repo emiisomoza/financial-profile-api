@@ -17,7 +17,7 @@ The Financial Hub API follows **Hexagonal Architecture** principles, where servi
 
 ### 1. UserService
 
-**Location**: `src/main/java/com/finantialhub/finantialhubapi/application/usecases/UserService.java`
+**Location**: `src/main/java/com/financialhub/financialhubapi/application/usecases/UserService.java`
 
 **Responsibilities**:
 - User registration with validation (email uniqueness, password strength, full name)
@@ -45,7 +45,7 @@ The Financial Hub API follows **Hexagonal Architecture** principles, where servi
 
 ### 2. AuthService
 
-**Location**: `src/main/java/com/finantialhub/finantialhubapi/application/usecases/AuthService.java`
+**Location**: `src/main/java/com/financialhub/financialhubapi/application/usecases/AuthService.java`
 
 **Responsibilities**:
 - User authentication (credential validation)
@@ -67,7 +67,7 @@ The Financial Hub API follows **Hexagonal Architecture** principles, where servi
 
 ### 3. AssetService
 
-**Location**: `src/main/java/com/finantialhub/finantialhubapi/application/usecases/AssetService.java`
+**Location**: `src/main/java/com/financialhub/financialhubapi/application/usecases/AssetService.java`
 
 **Responsibilities**:
 - CRUD operations for user assets (properties, stocks, crypto, cash, etc.)
@@ -97,7 +97,7 @@ The Financial Hub API follows **Hexagonal Architecture** principles, where servi
 
 ### 4. IncomeService
 
-**Location**: `src/main/java/com/finantialhub/finantialhubapi/application/usecases/IncomeService.java`
+**Location**: `src/main/java/com/financialhub/financialhubapi/application/usecases/IncomeService.java`
 
 **Responsibilities**:
 - CRUD operations for income streams (salary, freelance, investment returns, etc.)
@@ -121,7 +121,7 @@ The Financial Hub API follows **Hexagonal Architecture** principles, where servi
 
 ### 5. ExpenseService
 
-**Location**: `src/main/java/com/finantialhub/finantialhubapi/application/usecases/ExpenseService.java`
+**Location**: `src/main/java/com/financialhub/financialhubapi/application/usecases/ExpenseService.java`
 
 **Responsibilities**:
 - CRUD operations for expense tracking (utilities, rent, groceries, subscriptions, etc.)
@@ -145,7 +145,7 @@ The Financial Hub API follows **Hexagonal Architecture** principles, where servi
 
 ### 6. SummarySubscriptionService
 
-**Location**: `src/main/java/com/finantialhub/finantialhubapi/application/usecases/SummarySubscriptionService.java`
+**Location**: `src/main/java/com/financialhub/financialhubapi/application/usecases/SummarySubscriptionService.java`
 
 **Responsibilities**:
 - CRUD operations for user summary subscriptions (weekly or monthly email summaries)
@@ -165,7 +165,7 @@ The Financial Hub API follows **Hexagonal Architecture** principles, where servi
 
 ### 7. SummaryService
 
-**Location**: `src/main/java/com/finantialhub/finantialhubapi/application/usecases/SummaryService.java`
+**Location**: `src/main/java/com/financialhub/financialhubapi/application/usecases/SummaryService.java`
 
 **Responsibilities**:
 - Calculate comprehensive financial summaries for users
@@ -359,5 +359,5 @@ Each service agent has corresponding test coverage:
 - **Integration Tests**: Test repositories and external integrations
 - **Controller Tests**: End-to-end API validation
 
-Located in: `src/test/java/com/finantialhub/finantialhubapi/`
+Located in: `src/test/java/com/financialhub/financialhubapi/`
 
