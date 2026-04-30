@@ -33,7 +33,7 @@ services:
     build: ../financial-price-api
     restart: unless-stopped
     environment:
-      FINNHUB_API_KEY: ${FINNHUB_API_KEY}
+      ALPHAVANTAGE_API_KEY: ${ALPHAVANTAGE_API_KEY}
       PORT: 4567
     healthcheck:
       test: ["CMD-SHELL", "ruby -rnet/http -e 'Net::HTTP.get(URI(\"http://localhost:4567/health\"))' || exit 1"]
